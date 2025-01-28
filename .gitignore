@@ -213,6 +213,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# VENV / virtual environment
+repast_env/
+
 # C extensions
 *.so
 
@@ -425,3 +428,6 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,linux,jetbrains+all,visualstudiocode,pycharm+all,python,git
+
+# Project specific
+output/
