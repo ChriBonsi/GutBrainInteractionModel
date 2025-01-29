@@ -5,29 +5,66 @@ from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
 
-class Protein(core.Agent):
+class CleavedProtein(core.Agent):
+    TYPE = 2
 
-    TYPE = 1
-
-    def __init__(self, local_id: int, rank: int, protein_name, pt: dpt):
-        super().__init__(id=local_id, type=Protein.TYPE, rank=rank)
-        self.name = protein_name
-        self.pt = pt
-        self.toCleave = False
+    def __init__(self, local_id: int, rank: int, cleaved_protein_name, pt: dpt):
+        super().__init__(id=local_id, type=CleavedProtein.TYPE, rank=rank)
+        self.name = cleaved_protein_name
+        self.toAggregate = False
+        self.alreadyAggregate = False
         self.toRemove = False
+        self.pt = pt
 
     def save(self) -> Tuple:
-        return (self.uid, self.name, self.pt.coordinates, self.toCleave, self.toRemove)
+        return (self.uid, self.name, self.pt.coordinates, self.toAggregate, self.alreadyAggregate, self.toRemove)
 
     def step(self):
-        if self.pt is None:
-            return
+        if self.alreadyAggregate == True or self.toAggregate == True or self.pt is None:
+            pass
         else:
-            nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
-            random_index = np.random.randint(0, len(nghs_coords))
-            chosen_dpt = dpt(nghs_coords[random_index][0], nghs_coords[random_index][1])
-            model.move(self, chosen_dpt)
+            cleaved_nghs_number, _, nghs_coords = self.check_and_get_nghs()
+            if cleaved_nghs_number == 0:
+                random_index = np.random.randint(0, len(nghs_coords))
+                model.move(self, nghs_coords[random_index])
+            elif cleaved_nghs_number >= 4:
+                self.change_state()
+            else:
+                self.change_group_aggregate_status()
+
+    def change_group_aggregate_status(self):
+        nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+        for ngh_coords in nghs_coords:
+            nghs_array = model.grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+            for ngh in nghs_array:
+                if ngh is not None:
+                    ngh.alreadyAggregate = False
+
+    def is_valid(self):
+        cont = 0
+        _, nghs_cleaved, _ = self.check_and_get_nghs()
+        for agent in nghs_cleaved:
+            if (agent.alreadyAggregate == True):
+                cont += 1
+        if cont >= 4:
+            return True
+        else:
+            return False
 
     def change_state(self):
-        if self.toCleave == False:
-            self.toCleave = True
+        if self.toAggregate == False:
+            self.toAggregate = True
+
+    def check_and_get_nghs(self):
+        nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+        cont = 0
+        cleavedProteins = []
+        for ngh_coords in nghs_coords:
+            ngh_array = model.grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+            for ngh in ngh_array:
+                if (type(ngh) == CleavedProtein and self.name == ngh.name):
+                    cleavedProteins.append(ngh)
+                    if ngh.toAggregate == False and ngh.alreadyAggregate == False:
+                        ngh.alreadyAggregate = True
+                        cont += 1
+        return cont, cleavedProteins, nghs_coords

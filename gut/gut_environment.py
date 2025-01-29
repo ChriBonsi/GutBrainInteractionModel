@@ -12,6 +12,13 @@ from repast4py import context as ctx
 from repast4py import random, space, schedule, logging, parameters
 from repast4py.space import DiscretePoint as dpt
 
+from gut.aep import AEP
+from gut.cleaved_protein import CleavedProtein
+from gut.external_input import ExternalInput
+from gut.normal_protein import Protein
+from gut.oligomer import Oligomer
+from gut.treatment import Treatment
+
 
 @dataclass
 class Log:
