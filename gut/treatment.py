@@ -1,17 +1,9 @@
-from typing import Dict, Tuple
-from mpi4py import MPI
+from typing import Tuple
+
 import numpy as np
-from dataclasses import dataclass
-from repast4py import core, random, space, schedule, logging, parameters
-from repast4py import context as ctx
-import repast4py
-import repast4py.random
+from repast4py import core
 from repast4py.space import DiscretePoint as dpt
-import yaml
-import numba
-from numba import int32, int64
-from numba.experimental import jitclass
-import math
+
 
 class Treatment(core.Agent):
 
