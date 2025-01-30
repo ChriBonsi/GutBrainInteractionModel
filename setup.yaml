@@ -1,48 +1,40 @@
 # Gut system
 # Barrier variables
-barrier_impermeability : 50
-barrier_permeability_threshold : 25 
-barrier_permeability_threshold_stop : 20
-barrier_permeability_threshold_start : 30
+barrier_impermeability: 50
+barrier_permeability_threshold: 25
+barrier_permeability_threshold_stop: 20
+barrier_permeability_threshold_start: 30
 
 # Microbiota variables
-microbiota_good_bacteria_class : 30000
-microbiota_pathogenic_bacteria_class : 10000
-microbiota_diversity_threshold : 10000
+microbiota_good_bacteria_class: 30000
+microbiota_pathogenic_bacteria_class: 10000
+microbiota_diversity_threshold: 10000
 
 # To start the dysbyosis
-external_input.count : 10
-external_input : {
-    diet : "diet", 
-    antibiotics: "antibiotics",
-    stress: "stress" 
-}
+external_input.count: 10
+external_input: { diet: "diet",
+                  antibiotics: "antibiotics",
+                  stress: "stress" }
 
 # The treatment to use
-treatment : True
-treatment_input.count : 10
+treatment: True
+treatment_input.count: 10
 
-treatment_input : {
-    diet: "diet", 
-    probiotics: "probiotics" 
-}
+treatment_input: { diet: "diet",
+                   probiotics: "probiotics" }
 
 # The agents
-aep_enzyme.count : 50
-tau_proteins.count : 300
-alpha_syn_proteins.count : 300
-tau_oligomers_gut.count : 0
-alpha_syn_oligomers_gut.count : 0
+aep_enzyme.count: 50
+tau_proteins.count: 300
+alpha_syn_proteins.count: 300
+tau_oligomers_gut.count: 0
+alpha_syn_oligomers_gut.count: 0
 
-protein_name : {
-    tau: "tau",
-    alpha_syn: "alpha_syn"
-}
+protein_name: { tau: "tau",
+                alpha_syn: "alpha_syn" }
 
-aep_state : {
-    active: "active",
-    hyperactive: "hyperactive"
-}
+aep_state: { active: "active",
+             hyperactive: "hyperactive" }
 
 # Nervous system variables
 active_microglia.count: 0
@@ -50,34 +42,28 @@ resting_microglia.count: 50
 neuron_healthy.count: 300
 neuron_damaged.count: 0
 neuron_dead.count: 0
-cytokine.count : 0
-alpha_syn_cleaved_brain.count : 0
-alpha_syn_oligomer_brain.count : 0
-tau_cleaved_brain.count : 0
-tau_oligomer_brain.count : 0
+cytokine.count: 0
+alpha_syn_cleaved_brain.count: 0
+alpha_syn_oligomer_brain.count: 0
+tau_cleaved_brain.count: 0
+tau_oligomer_brain.count: 0
 
-microglia_state : {
-    active: "active",
-    resting: "resting"
-}
+microglia_state: { active: "active",
+                   resting: "resting" }
 
-neuron_state : {
-    "healthy": "healthy",
-    "damaged": "damaged",
-    "dead": "dead"
-}
+neuron_state: { "healthy": "healthy",
+                "damaged": "damaged",
+                "dead": "dead" }
 
-cyto_state : {
-    pro_inflammatory: "pro_inflammatory",
-    non_inflammatory: "non_inflammatory"
-}
+cyto_state: { pro_inflammatory: "pro_inflammatory",
+              non_inflammatory: "non_inflammatory" }
 
 # Model variables
 world.width: 100
 world.height: 100
 
 # General variables
-stop.at : 500
+stop.at: 500
 gut_log_file: 'output/gut_log.csv'
 brain_log_file: 'output/brain_log.csv'
 log_file: 'output/log_file.csv'
