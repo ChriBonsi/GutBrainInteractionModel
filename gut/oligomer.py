@@ -6,7 +6,6 @@ from repast4py.space import DiscretePoint as dpt
 
 
 class Oligomer(core.Agent):
-
     TYPE = 3
 
     def __init__(self, local_id: int, rank: int, oligomer_name, pt: dpt):
@@ -16,7 +15,7 @@ class Oligomer(core.Agent):
         self.toRemove = False
 
     def save(self) -> Tuple:
-        return (self.uid, self.name, self.pt.coordinates)
+        return self.uid, self.name, self.pt.coordinates
 
     def step(self):
         if self.pt is None:

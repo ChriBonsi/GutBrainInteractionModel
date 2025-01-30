@@ -9,7 +9,7 @@ from mpi4py import MPI
 from numba import int32, int64
 from numba.experimental import jitclass
 from repast4py import context as ctx
-from repast4py import random, space, schedule, logging, parameters
+from repast4py import space, schedule, logging, parameters
 from repast4py.space import DiscretePoint as dpt
 
 from gut.aep import AEP
@@ -123,7 +123,7 @@ def restore_agent(agent_data: Tuple):
     return agent
 
 
-class Model():
+class Model:
 
     def __init__(self, comm: MPI.Intracomm, params: Dict):
         self.comm = comm
@@ -198,7 +198,7 @@ class Model():
     def move_cleaved_protein_step(self):
         for agent in self.context.agents():
             if type(agent) == CleavedProtein:
-                if agent.alreadyAggregate == False:
+                if not agent.alreadyAggregate:
                     pt = self.grid.get_random_local_pt(self.rng)
                     self.move(agent, pt)
 
@@ -247,10 +247,10 @@ class Model():
         all_true_cleaved_aggregates = []
 
         for agent in self.context.agents():
-            if (type(agent) == Protein and agent.toCleave == True):
+            if type(agent) == Protein and agent.toCleave == True:
                 protein_to_remove.append(agent)
                 agent.toRemove = True
-            elif (type(agent) == CleavedProtein and agent.toAggregate == True):
+            elif type(agent) == CleavedProtein and agent.toAggregate == True:
                 all_true_cleaved_aggregates.append(agent)
                 agent.toRemove = True
 
@@ -331,23 +331,23 @@ class Model():
         tau_oligomer = 0
 
         for agent in self.context.agents():
-            if (type(agent) == Oligomer):
-                if (agent.name == params["protein_name"]["alpha_syn"]):
+            if type(agent) == Oligomer:
+                if agent.name == params["protein_name"]["alpha_syn"]:
                     alpha_oligomer += 1
                 else:
                     tau_oligomer += 1
-            if (type(agent) == CleavedProtein):
-                if (agent.name == params["protein_name"]["alpha_syn"]):
+            if type(agent) == CleavedProtein:
+                if agent.name == params["protein_name"]["alpha_syn"]:
                     alpha_cleaved += 1
                 else:
                     tau_cleaved += 1
-            elif (type(agent) == Protein):
-                if (agent.name == params["protein_name"]["alpha_syn"]):
+            elif type(agent) == Protein:
+                if agent.name == params["protein_name"]["alpha_syn"]:
                     alpha_protein += 1
                 else:
                     tau_protein += 1
-            elif (type(agent) == AEP):
-                if (agent.state == params["aep_state"]["active"]):
+            elif type(agent) == AEP:
+                if agent.state == params["aep_state"]["active"]:
                     aep_active += 1
                 else:
                     aep_hyperactive += 1

@@ -17,7 +17,7 @@ class Microglia(core.Agent):
         self.pt = pt
 
     def save(self) -> Tuple:
-        return (self.uid, self.state, self.pt.coordinates)
+        return self.uid, self.state, self.pt.coordinates
 
     def step(self):
         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
@@ -32,6 +32,6 @@ class Microglia(core.Agent):
         for ngh_coord in nghs_coords:
             ngh_array = model.grid.get_agents(dpt(ngh_coord[0], ngh_coord[1]))
             for ngh in ngh_array:
-                if (type(ngh) == Oligomer):
+                if type(ngh) == Oligomer:
                     return ngh
         return None

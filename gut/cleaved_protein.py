@@ -17,10 +17,10 @@ class CleavedProtein(core.Agent):
         self.pt = pt
 
     def save(self) -> Tuple:
-        return (self.uid, self.name, self.pt.coordinates, self.toAggregate, self.alreadyAggregate, self.toRemove)
+        return self.uid, self.name, self.pt.coordinates, self.toAggregate, self.alreadyAggregate, self.toRemove
 
     def step(self):
-        if self.alreadyAggregate == True or self.toAggregate == True or self.pt is None:
+        if self.alreadyAggregate or self.toAggregate or self.pt is None:
             pass
         else:
             cleaved_nghs_number, _, nghs_coords = self.check_and_get_nghs()
@@ -44,7 +44,7 @@ class CleavedProtein(core.Agent):
         cont = 0
         _, nghs_cleaved, _ = self.check_and_get_nghs()
         for agent in nghs_cleaved:
-            if (agent.alreadyAggregate == True):
+            if agent.alreadyAggregate:
                 cont += 1
         if cont >= 4:
             return True
@@ -52,7 +52,7 @@ class CleavedProtein(core.Agent):
             return False
 
     def change_state(self):
-        if self.toAggregate == False:
+        if not self.toAggregate:
             self.toAggregate = True
 
     def check_and_get_nghs(self):
@@ -62,7 +62,7 @@ class CleavedProtein(core.Agent):
         for ngh_coords in nghs_coords:
             ngh_array = model.grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
             for ngh in ngh_array:
-                if (type(ngh) == CleavedProtein and self.name == ngh.name):
+                if type(ngh) == CleavedProtein and self.name == ngh.name:
                     cleavedProteins.append(ngh)
                     if ngh.toAggregate == False and ngh.alreadyAggregate == False:
                         ngh.alreadyAggregate = True

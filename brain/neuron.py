@@ -15,7 +15,7 @@ class Neuron(core.Agent):
         self.toRemove = False
 
     def save(self) -> Tuple:
-        return (self.uid, self.state, self.pt.coordinates, self.toRemove)
+        return self.uid, self.state, self.pt.coordinates, self.toRemove
 
     def step(self):
         difference_pro_anti_cytokine = model.pro_cytokine - model.anti_cytokine

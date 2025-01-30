@@ -5,6 +5,8 @@ from repast4py import core
 from repast4py.parameters import params
 from repast4py.space import DiscretePoint as dpt
 
+from brain.microglia import Microglia
+
 
 class Cytokine(core.Agent):
     TYPE = 4
@@ -21,7 +23,7 @@ class Cytokine(core.Agent):
             model.anti_cytokine += 1
 
     def save(self) -> Tuple:
-        return (self.uid, self.state, self.pt.coordinates)
+        return self.uid, self.state, self.pt.coordinates
 
     def step(self):
         if self.pt is None:
@@ -45,6 +47,6 @@ class Cytokine(core.Agent):
         for ngh_coords in nghs_coords:
             nghs_array = model.grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
             for ngh in nghs_array:
-                if (type(ngh) == Microglia):
+                if type(ngh) == Microglia:
                     microglie.append(ngh)
         return microglie, nghs_coords

@@ -15,7 +15,7 @@ class Oligomer(core.Agent):
         self.toRemove = False
 
     def save(self) -> Tuple:
-        return (self.uid, self.name, self.pt.coordinates, self.toRemove)
+        return self.uid, self.name, self.pt.coordinates, self.toRemove
 
     def step(self):
         if self.pt is None:

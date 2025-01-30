@@ -16,7 +16,7 @@ class Protein(core.Agent):
         self.toRemove = False
 
     def save(self) -> Tuple:
-        return (self.uid, self.name, self.pt.coordinates, self.toCleave, self.toRemove)
+        return self.uid, self.name, self.pt.coordinates, self.toCleave, self.toRemove
 
     def step(self):
         if self.pt is None:
@@ -28,5 +28,5 @@ class Protein(core.Agent):
             model.move(self, chosen_dpt)
 
     def change_state(self):
-        if self.toCleave == False:
+        if not self.toCleave:
             self.toCleave = True
