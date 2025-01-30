@@ -148,11 +148,14 @@ class GUI:
 
         # Define legend items
         legend_items = {(147, 112, 219): "Active AEP", (128, 0, 128): "Hyperactive AEP", (173, 216, 230): "Tau Protein",
-            (255, 255, 128): "Alpha-syn Protein", (113, 166, 210): "Tau Cleaved", (225, 225, 100): "Alpha-syn Cleaved",
-            (0, 0, 255): "Tau Oligomer", (255, 255, 0): "Alpha-syn Oligomer", (169, 169, 169): "External Input",
-            (211, 211, 211): "Treatment", (144, 238, 144): "Resting Microglia", (0, 100, 0): "Active Microglia",
-            (255, 105, 180): "Healthy Neuron", (255, 69, 0): "Damaged Neuron", (0, 0, 0): "Dead Neuron",
-            (255, 0, 0): "Pro-inflammatory Cytokine", (0, 255, 255): "Anti-inflammatory Cytokine"}
+                        (255, 255, 128): "Alpha-syn Protein", (113, 166, 210): "Tau Cleaved",
+                        (225, 225, 100): "Alpha-syn Cleaved",
+                        (0, 0, 255): "Tau Oligomer", (255, 255, 0): "Alpha-syn Oligomer",
+                        (169, 169, 169): "External Input",
+                        (211, 211, 211): "Treatment", (144, 238, 144): "Resting Microglia",
+                        (0, 100, 0): "Active Microglia",
+                        (255, 105, 180): "Healthy Neuron", (255, 69, 0): "Damaged Neuron", (0, 0, 0): "Dead Neuron",
+                        (255, 0, 0): "Pro-inflammatory Cytokine", (0, 255, 255): "Anti-inflammatory Cytokine"}
 
         # Calculate number of items per column
         items_per_column = len(legend_items) // 2 + len(legend_items) % 2
@@ -840,18 +843,19 @@ class Model:
         self.dead_neuron = self.calculate_partitioned_count(params['neuron_dead.count'])
         # Initialize the agents
         agent_types_gut = [('aep_enzyme.count', AEP, None),
-            ('tau_proteins.count', Protein, params["protein_name"]["tau"]),
-            ('alpha_syn_proteins.count', Protein, params["protein_name"]["alpha_syn"]),
-            ('external_input.count', ExternalInput, None), ('treatment_input.count', Treatment, None),
-            ('alpha_syn_oligomers_gut.count', Oligomer, params["protein_name"]["alpha_syn"]),
-            ('tau_oligomers_gut.count', Oligomer, params["protein_name"]["tau"]), ]
+                           ('tau_proteins.count', Protein, params["protein_name"]["tau"]),
+                           ('alpha_syn_proteins.count', Protein, params["protein_name"]["alpha_syn"]),
+                           ('external_input.count', ExternalInput, None), ('treatment_input.count', Treatment, None),
+                           ('alpha_syn_oligomers_gut.count', Oligomer, params["protein_name"]["alpha_syn"]),
+                           ('tau_oligomers_gut.count', Oligomer, params["protein_name"]["tau"]), ]
         agent_types_brain = [('neuron_healthy.count', Neuron, 'healthy'), ('neuron_damaged.count', Neuron, 'damaged'),
-            ('neuron_dead.count', Neuron, 'dead'), ('resting_microglia.count', Microglia, 'resting'),
-            ('active_microglia.count', Microglia, 'active'),
-            ('alpha_syn_cleaved_brain.count', CleavedProtein, params["protein_name"]["alpha_syn"]),
-            ('tau_cleaved_brain.count', CleavedProtein, params["protein_name"]["tau"]),
-            ('alpha_syn_oligomer_brain.count', Oligomer, params["protein_name"]["alpha_syn"]),
-            ('tau_oligomer_brain.count', Oligomer, params["protein_name"]["tau"]), ('cytokine.count', Cytokine, None)]
+                             ('neuron_dead.count', Neuron, 'dead'), ('resting_microglia.count', Microglia, 'resting'),
+                             ('active_microglia.count', Microglia, 'active'),
+                             ('alpha_syn_cleaved_brain.count', CleavedProtein, params["protein_name"]["alpha_syn"]),
+                             ('tau_cleaved_brain.count', CleavedProtein, params["protein_name"]["tau"]),
+                             ('alpha_syn_oligomer_brain.count', Oligomer, params["protein_name"]["alpha_syn"]),
+                             ('tau_oligomer_brain.count', Oligomer, params["protein_name"]["tau"]),
+                             ('cytokine.count', Cytokine, None)]
         self.distribute_all_agents(agent_types_gut, self.gut_context, self.gut_grid, 'gut')
         self.distribute_all_agents(agent_types_brain, self.brain_context, self.brain_grid, 'brain')
         # Synchronize the contexts
@@ -1206,9 +1210,9 @@ class Model:
         tick = self.runner.schedule.tick
 
         counts = {"aep_active": 0, "aep_hyperactive": 0, "alpha_protein_gut": 0, "tau_protein_gut": 0,
-            "alpha_cleaved_gut": 0, "tau_cleaved_gut": 0, "alpha_oligomer_gut": 0, "tau_oligomer_gut": 0,
-            "microglia_resting": 0, "microglia_active": 0, "neuron_healthy": 0, "neuron_damaged": 0,
-            "alpha_cleaved_brain": 0, "tau_cleaved_brain": 0, "alpha_oligomer_brain": 0, "tau_oligomer_brain": 0}
+                  "alpha_cleaved_gut": 0, "tau_cleaved_gut": 0, "alpha_oligomer_gut": 0, "tau_oligomer_gut": 0,
+                  "microglia_resting": 0, "microglia_active": 0, "neuron_healthy": 0, "neuron_damaged": 0,
+                  "alpha_cleaved_brain": 0, "tau_cleaved_brain": 0, "alpha_oligomer_brain": 0, "tau_oligomer_brain": 0}
 
         for agent in self.brain_context.agents():
             if isinstance(agent, Oligomer):
