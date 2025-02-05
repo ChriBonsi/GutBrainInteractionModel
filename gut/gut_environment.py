@@ -20,6 +20,9 @@ from gut.oligomer import Oligomer
 from gut.treatment import Treatment
 
 
+# TODO understand why duplicate agents are created
+
+
 @dataclass
 class Log:
     aep_active: int = 0
@@ -40,14 +43,7 @@ def is_equal(a1, a2):
     return a1[0] == a2[0] and a1[1] == a2[1]
 
 
-spec = [
-    ('mo', int32[:]),
-    ('no', int32[:]),
-    ('xmin', int32),
-    ('ymin', int32),
-    ('ymax', int32),
-    ('xmax', int32)
-]
+spec = [('mo', int32[:]), ('no', int32[:]), ('xmin', int32), ('ymin', int32), ('ymax', int32), ('xmax', int32)]
 
 
 @jitclass(spec)
@@ -132,8 +128,7 @@ class Model:
 
         box = space.BoundingBox(0, params['world.width'] - 1, 0, params['world.height'] - 1, 0, 0)
         self.grid = space.SharedGrid(name='grid', bounds=box, borders=space.BorderType.Sticky,
-                                     occupancy=space.OccupancyType.Single,
-                                     buffer_size=1, comm=comm)
+                                     occupancy=space.OccupancyType.Single, buffer_size=1, comm=comm)
         self.context.add_projection(self.grid)
         self.ngh_finder = GridNghFinder(0, 0, box.xextent, box.yextent)
 

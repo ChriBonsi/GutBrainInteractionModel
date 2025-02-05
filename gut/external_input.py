@@ -23,6 +23,7 @@ class ExternalInput(core.Agent):
     # if the external input is "diet" or "stress" then the microbiota bacteria decrease in good bacteria classes and increase in pathogenic ones.
     # otherwise it only decreases the good bacteria classes.
     # random percentage to change the params of the microbiota
+    # TODO the good bacteria could also increase and the pathogenic decrease
     def step(self):
         if model.barrier_impermeability >= model.barrier_permeability_threshold_stop:
             def adjust_bacteria(good_bacteria_factor, pathogenic_bacteria_factor):

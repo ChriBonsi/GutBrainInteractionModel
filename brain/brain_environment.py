@@ -19,6 +19,9 @@ from brain.neuron import Neuron
 from brain.oligomer import Oligomer
 
 
+# TODO understand why duplicate agents are created
+
+
 @dataclass
 class Log:
     number_of_resting_microglia: int = 0

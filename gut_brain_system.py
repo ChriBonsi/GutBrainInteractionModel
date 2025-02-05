@@ -14,6 +14,9 @@ from repast4py import core, space, schedule, logging, parameters
 from repast4py.space import DiscretePoint as dpt
 
 
+# TODO understand why duplicate agents are created
+
+
 # Class to make the graphics of the simulation
 class GUI:
     def __init__(self, width, height, gut_context, brain_context, grid_dimensions=(100, 100)):
@@ -149,12 +152,11 @@ class GUI:
         # Define legend items
         legend_items = {(147, 112, 219): "Active AEP", (128, 0, 128): "Hyperactive AEP", (173, 216, 230): "Tau Protein",
                         (255, 255, 128): "Alpha-syn Protein", (113, 166, 210): "Tau Cleaved",
-                        (225, 225, 100): "Alpha-syn Cleaved",
-                        (0, 0, 255): "Tau Oligomer", (255, 255, 0): "Alpha-syn Oligomer",
-                        (169, 169, 169): "External Input",
+                        (225, 225, 100): "Alpha-syn Cleaved", (0, 0, 255): "Tau Oligomer",
+                        (255, 255, 0): "Alpha-syn Oligomer", (169, 169, 169): "External Input",
                         (211, 211, 211): "Treatment", (144, 238, 144): "Resting Microglia",
-                        (0, 100, 0): "Active Microglia",
-                        (255, 105, 180): "Healthy Neuron", (255, 69, 0): "Damaged Neuron", (0, 0, 0): "Dead Neuron",
+                        (0, 100, 0): "Active Microglia", (255, 105, 180): "Healthy Neuron",
+                        (255, 69, 0): "Damaged Neuron", (0, 0, 0): "Dead Neuron",
                         (255, 0, 0): "Pro-inflammatory Cytokine", (0, 255, 255): "Anti-inflammatory Cytokine"}
 
         # Calculate number of items per column
