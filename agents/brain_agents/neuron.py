@@ -33,3 +33,11 @@ class Neuron(core.Agent):
             self.state = params["neuron_state"]["dead"]
             self.toRemove = True
             model.dead_neuron += 1
+
+    def setAgentData(self, newState):
+        """
+        Function created as a stopgag due to the inconsistency of the 'state' parameter between agent classes.
+        This function updates the parameter of the class related to the value 'agent_data[1]'.
+        The modified parameter for 'Neuron' class is 'state'.
+        """
+        self.state = newState

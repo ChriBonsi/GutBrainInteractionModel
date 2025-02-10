@@ -22,6 +22,14 @@ class Cytokine(core.Agent):
         else:
             model.anti_cytokine += 1
 
+    def setAgentData(self, newState):
+        """
+        Function created as a stopgag due to the inconsistency of the 'state' parameter between agent classes.
+        This function updates the parameter of the class related to the value 'agent_data[1]'.
+        The modified parameter for 'Cytokine' class is 'state'.
+        """
+        self.state = newState
+
     def save(self) -> Tuple:
         return self.uid, self.state, self.pt.coordinates
 

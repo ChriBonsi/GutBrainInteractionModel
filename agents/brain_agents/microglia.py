@@ -16,6 +16,14 @@ class Microglia(core.Agent):
         self.state = initial_state
         self.pt = pt
 
+    def setAgentData(self, newState):
+        """
+        Function created as a stopgag due to the inconsistency of the 'state' parameter between agent classes.
+        This function updates the parameter of the class related to the value 'agent_data[1]'.
+        The modified parameter for 'Microglia' class is 'state'.
+        """
+        self.state = newState
+
     def save(self) -> Tuple:
         return self.uid, self.state, self.pt.coordinates
 

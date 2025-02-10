@@ -13,6 +13,19 @@ from repast4py import context as ctx
 from repast4py import core, space, schedule, logging, parameters
 from repast4py.space import DiscretePoint as dpt
 
+from enviroments import brain_environment, gut_environment
+#region import agents
+from agents.brain_agents.microglia  import Microglia
+from agents.brain_agents.cytokine   import Cytokine
+from agents.brain_agents.neuron     import Neuron
+from agents.gut_agents.aep              import AEP
+from agents.gut_agents.external_input   import ExternalInput
+from agents.gut_agents.normal_protein   import Protein
+from agents.gut_agents.treatment        import Treatment
+from agents.gut_brain_agents.cleaved_protein    import CleavedProtein
+from agents.gut_brain_agents.oligomer           import Oligomer
+#endregion
+
 
 # Class to make the graphics of the simulation
 class GUI:
@@ -519,293 +532,297 @@ class ExternalInput(core.Agent):
                 adjust_bacteria(3, 3)
 
 
-class Treatment(core.Agent):
-    TYPE = 5
+# class Treatment(core.Agent):
+#     TYPE = 5
 
-    def __init__(self, local_id: int, rank: int, pt: dpt, context):
-        super().__init__(id=local_id, type=Treatment.TYPE, rank=rank)
-        possible_types = [params["treatment_input"]["diet"], params["treatment_input"]["probiotics"]]
-        random_index = np.random.randint(0, len(possible_types))
-        input_name = possible_types[random_index]
-        self.pt = pt
-        self.input_name = input_name
-        self.context = context
+#     def __init__(self, local_id: int, rank: int, pt: dpt, context):
+#         super().__init__(id=local_id, type=Treatment.TYPE, rank=rank)
+#         possible_types = [params["treatment_input"]["diet"], params["treatment_input"]["probiotics"]]
+#         random_index = np.random.randint(0, len(possible_types))
+#         input_name = possible_types[random_index]
+#         self.pt = pt
+#         self.input_name = input_name
+#         self.context = context
 
-    def save(self) -> Tuple:
-        return self.uid, self.input_name, self.pt.coordinates, self.context
+#     def save(self) -> Tuple:
+#         return self.uid, self.input_name, self.pt.coordinates, self.context
 
-    # Treatment step function
-    def step(self):
-        if model.barrier_impermeability < model.barrier_permeability_threshold_start:
-            def adjust_bacteria(good_bacteria_factor, pathogenic_bacteria_factor):
-                to_add = int(
-                    (params["microbiota_good_bacteria_class"] * np.random.uniform(0, good_bacteria_factor)) / 100)
-                model.microbiota_good_bacteria_class += to_add
-                to_remove = int((model.microbiota_pathogenic_bacteria_class * np.random.uniform(0,
-                                                                                                pathogenic_bacteria_factor)) / 100)
-                model.microbiota_pathogenic_bacteria_class -= to_remove
+#     # Treatment step function
+#     def step(self):
+#         if model.barrier_impermeability < model.barrier_permeability_threshold_start:
+#             def adjust_bacteria(good_bacteria_factor, pathogenic_bacteria_factor):
+#                 to_add = int(
+#                     (params["microbiota_good_bacteria_class"] * np.random.uniform(0, good_bacteria_factor)) / 100)
+#                 model.microbiota_good_bacteria_class += to_add
+#                 to_remove = int((model.microbiota_pathogenic_bacteria_class * np.random.uniform(0,
+#                                                                                                 pathogenic_bacteria_factor)) / 100)
+#                 model.microbiota_pathogenic_bacteria_class -= to_remove
 
-            if self.input_name == params["treatment_input"]["diet"]:
-                adjust_bacteria(3, 2)
-            elif self.input_name == params["treatment_input"]["probiotics"]:
-                adjust_bacteria(4, 4)
-
-
-class Microglia(core.Agent):
-    TYPE = 6
-
-    def __init__(self, local_id: int, rank: int, initial_state, pt: dpt, context):
-        super().__init__(id=local_id, type=Microglia.TYPE, rank=rank)
-        self.state = initial_state
-        self.pt = pt
-        self.context = context
-
-    def save(self) -> Tuple:
-        return self.uid, self.state, self.pt.coordinates, self.context
-
-    # Microglia step function
-    def step(self):
-        nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
-        ngh = self.check_oligomer_nghs(nghs_coords)
-        if ngh is not None:
-            if self.state == params["microglia_state"]["resting"]:
-                self.state = params["microglia_state"]["active"]
-            else:
-                ngh.toRemove = True
-
-    # returns the oligomer agent in the neighborhood of the agent     
-    def check_oligomer_nghs(self, nghs_coords):
-        for ngh_coord in nghs_coords:
-            ngh_array = model.brain_grid.get_agents(dpt(ngh_coord[0], ngh_coord[1]))
-            for ngh in ngh_array:
-                if type(ngh) == Oligomer:
-                    return ngh
-        return None
+#             if self.input_name == params["treatment_input"]["diet"]:
+#                 adjust_bacteria(3, 2)
+#             elif self.input_name == params["treatment_input"]["probiotics"]:
+#                 adjust_bacteria(4, 4)
 
 
-class Neuron(core.Agent):
-    TYPE = 7
+# class Microglia(core.Agent):
+#     TYPE = 6
 
-    def __init__(self, local_id: int, rank: int, initial_state, pt: dpt, context: str):
-        super().__init__(id=local_id, type=Neuron.TYPE, rank=rank)
-        self.state = initial_state
-        self.pt = pt
-        self.toRemove = False
-        self.context = context
+#     def __init__(self, local_id: int, rank: int, initial_state, pt: dpt, context):
+#         super().__init__(id=local_id, type=Microglia.TYPE, rank=rank)
+#         self.state = initial_state
+#         self.pt = pt
+#         self.context = context
 
-    def save(self) -> Tuple:
-        return self.uid, self.state, self.pt.coordinates, self.toRemove, self.context
+#     def save(self) -> Tuple:
+#         return self.uid, self.state, self.pt.coordinates, self.context
 
-    # Neuron step function
-    def step(self):
-        difference_pro_anti_cytokine = model.pro_cytokine - model.anti_cytokine
-        if difference_pro_anti_cytokine > 0:
-            level_of_inflammation = (difference_pro_anti_cytokine * 100) / (model.pro_cytokine + model.anti_cytokine)
-            if np.random.randint(0, 100) < level_of_inflammation:
-                self.change_state()
-        else:
-            pass
+#     # Microglia step function
+#     def step(self):
+#         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+#         ngh = self.check_oligomer_nghs(nghs_coords)
+#         if ngh is not None:
+#             if self.state == params["microglia_state"]["resting"]:
+#                 self.state = params["microglia_state"]["active"]
+#             else:
+#                 ngh.toRemove = True
 
-    # changes the state of the neuron agent
-    def change_state(self):
-        if self.state == params["neuron_state"]["healthy"]:
-            self.state = params["neuron_state"]["damaged"]
-        elif self.state == params["neuron_state"]["damaged"]:
-            self.state = params["neuron_state"]["dead"]
-            self.toRemove = True
-            model.dead_neuron += 1
+#     # returns the oligomer agent in the neighborhood of the agent     
+#     def check_oligomer_nghs(self, nghs_coords):
+#         for ngh_coord in nghs_coords:
+#             ngh_array = model.brain_grid.get_agents(dpt(ngh_coord[0], ngh_coord[1]))
+#             for ngh in ngh_array:
+#                 if type(ngh) == Oligomer:
+#                     return ngh
+#         return None
 
 
-class Cytokine(core.Agent):
-    TYPE = 8
+# class Neuron(core.Agent):
+#     TYPE = 7
 
-    def __init__(self, local_id: int, rank: int, pt: dpt, context):
-        super().__init__(id=local_id, type=Cytokine.TYPE, rank=rank)
-        self.pt = pt
-        self.context = context
-        possible_types = [params["cyto_state"]["pro_inflammatory"], params["cyto_state"]["non_inflammatory"]]
-        random_index = np.random.randint(0, len(possible_types))
-        self.state = possible_types[random_index]
-        if self.state == params["cyto_state"]["pro_inflammatory"]:
-            model.pro_cytokine += 1
-        else:
-            model.anti_cytokine += 1
+#     def __init__(self, local_id: int, rank: int, initial_state, pt: dpt, context: str):
+#         super().__init__(id=local_id, type=Neuron.TYPE, rank=rank)
+#         self.state = initial_state
+#         self.pt = pt
+#         self.toRemove = False
+#         self.context = context
 
-    def save(self) -> Tuple:
-        return self.uid, self.state, self.pt.coordinates, self.context
+#     def save(self) -> Tuple:
+#         return self.uid, self.state, self.pt.coordinates, self.toRemove, self.context
 
-    # Cytokine step function
-    def step(self):
-        if self.pt is None:
-            return
-        microglie_nghs, nghs_coords = self.get_microglie_nghs()
-        if len(microglie_nghs) == 0:
-            random_index = np.random.randint(0, len(nghs_coords))
-            model.move(self, dpt(nghs_coords[random_index][0], nghs_coords[random_index][1]), self.context)
-        else:
-            ngh_microglia = microglie_nghs[0]
-            if self.state == params["cyto_state"]["pro_inflammatory"] and ngh_microglia.state == \
-                    params["microglia_state"]["resting"]:
-                ngh_microglia.state = params["microglia_state"]["active"]
-            elif self.state == params["cyto_state"]["non_inflammatory"] and ngh_microglia.state == \
-                    params["microglia_state"]["active"]:
-                ngh_microglia.state = params["microglia_state"]["resting"]
+#     # Neuron step function
+#     def step(self):
+#         difference_pro_anti_cytokine = model.pro_cytokine - model.anti_cytokine
+#         if difference_pro_anti_cytokine > 0:
+#             level_of_inflammation = (difference_pro_anti_cytokine * 100) / (model.pro_cytokine + model.anti_cytokine)
+#             if np.random.randint(0, 100) < level_of_inflammation:
+#                 self.change_state()
+#         else:
+#             pass
 
-    # returns the microglia agents in the neighborhood of the agent
-    def get_microglie_nghs(self):
-        nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
-        microglie = []
-        for ngh_coords in nghs_coords:
-            nghs_array = model.brain_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
-            for ngh in nghs_array:
-                if type(ngh) == Microglia:
-                    microglie.append(ngh)
-        return microglie, nghs_coords
+#     # changes the state of the neuron agent
+#     def change_state(self):
+#         if self.state == params["neuron_state"]["healthy"]:
+#             self.state = params["neuron_state"]["damaged"]
+#         elif self.state == params["neuron_state"]["damaged"]:
+#             self.state = params["neuron_state"]["dead"]
+#             self.toRemove = True
+#             model.dead_neuron += 1
+
+
+# class Cytokine(core.Agent):
+#     TYPE = 8
+
+#     def __init__(self, local_id: int, rank: int, pt: dpt, context):
+#         super().__init__(id=local_id, type=Cytokine.TYPE, rank=rank)
+#         self.pt = pt
+#         self.context = context
+#         possible_types = [params["cyto_state"]["pro_inflammatory"], params["cyto_state"]["non_inflammatory"]]
+#         random_index = np.random.randint(0, len(possible_types))
+#         self.state = possible_types[random_index]
+#         if self.state == params["cyto_state"]["pro_inflammatory"]:
+#             model.pro_cytokine += 1
+#         else:
+#             model.anti_cytokine += 1
+
+#     def save(self) -> Tuple:
+#         return self.uid, self.state, self.pt.coordinates, self.context
+
+#     # Cytokine step function
+#     def step(self):
+#         if self.pt is None:
+#             return
+#         microglie_nghs, nghs_coords = self.get_microglie_nghs()
+#         if len(microglie_nghs) == 0:
+#             random_index = np.random.randint(0, len(nghs_coords))
+#             model.move(self, dpt(nghs_coords[random_index][0], nghs_coords[random_index][1]), self.context)
+#         else:
+#             ngh_microglia = microglie_nghs[0]
+#             if self.state == params["cyto_state"]["pro_inflammatory"] and ngh_microglia.state == \
+#                     params["microglia_state"]["resting"]:
+#                 ngh_microglia.state = params["microglia_state"]["active"]
+#             elif self.state == params["cyto_state"]["non_inflammatory"] and ngh_microglia.state == \
+#                     params["microglia_state"]["active"]:
+#                 ngh_microglia.state = params["microglia_state"]["resting"]
+
+#     # returns the microglia agents in the neighborhood of the agent
+#     def get_microglie_nghs(self):
+#         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+#         microglie = []
+#         for ngh_coords in nghs_coords:
+#             nghs_array = model.brain_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+#             for ngh in nghs_array:
+#                 if type(ngh) == Microglia:
+#                     microglie.append(ngh)
+#         return microglie, nghs_coords
 
 
 agent_cache = {}
 
 
 # Function to restore the agents in the brain context from saved data
-def restore_agent_brain(agent_data: Tuple):
-    uid = agent_data[0]
-    pt_array = agent_data[2]
-    pt = dpt(pt_array[0], pt_array[1], 0)
+def restore_agent_brain(agent_data: Tuple): #TODO remove repetiotion (done)
 
-    if uid[1] == Microglia.TYPE:
-        agent_state = agent_data[1]
-        context = agent_data[3]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = Microglia(uid[0], uid[2], agent_state, pt, context)
-            agent_cache[uid] = agent
-        agent.state = agent_state
-        agent.context = context
-        agent.pt = pt
-    elif uid[1] == Neuron.TYPE:
-        context = agent_data[4]
-        agent_state = agent_data[1]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = Neuron(uid[0], uid[2], agent_state, pt, context)
-            agent_cache[uid] = agent
-        agent.state = agent_state
-        agent.context = context
-        agent.toRemove = agent_data[3]
-        agent.pt = pt
-    elif uid[1] == CleavedProtein.TYPE:
-        agent_name = agent_data[1]
-        context = agent_data[6]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = CleavedProtein(uid[0], uid[2], agent_name, pt, context)
-            agent_cache[uid] = agent
-        agent.name = agent_name
-        agent.toAggregate = agent_data[3]
-        agent.alreadyAggregate = agent_data[4]
-        agent.toRemove = agent_data[5]
-        agent.context = context
-        agent.pt = pt
-    elif uid[1] == Oligomer.TYPE:
-        context = agent_data[4]
-        agent_name = agent_data[1]
-        toRemove = agent_data[3]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = Oligomer(uid[0], uid[2], agent_name, pt, context)
-            agent_cache[uid] = agent
-        agent.name = agent_name
-        agent.pt = pt
-        agent.context = context
-        agent.toRemove = toRemove
-    elif uid[1] == Cytokine.TYPE:
-        context = agent_data[3]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = Cytokine(uid[0], uid[2], pt, context)
-            agent_cache[uid] = agent
-        agent.pt = pt
-        agent.context = context
-        agent.state = agent_data[1]
-    return agent
+    return brain_environment.restore_agent(agent_data, agent_cache, True)
+    # uid = agent_data[0]
+    # pt_array = agent_data[2]
+    # pt = dpt(pt_array[0], pt_array[1], 0)
+
+    # if uid[1] == Microglia.TYPE:
+    #     agent_state = agent_data[1]
+    #     context = agent_data[3]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = Microglia(uid[0], uid[2], agent_state, pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.state = agent_state
+    #     agent.context = context
+    #     agent.pt = pt
+    # elif uid[1] == Neuron.TYPE:
+    #     context = agent_data[4]
+    #     agent_state = agent_data[1]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = Neuron(uid[0], uid[2], agent_state, pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.state = agent_state
+    #     agent.context = context
+    #     agent.toRemove = agent_data[3]
+    #     agent.pt = pt
+    # elif uid[1] == CleavedProtein.TYPE:
+    #     agent_name = agent_data[1]
+    #     context = agent_data[6]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = CleavedProtein(uid[0], uid[2], agent_name, pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.name = agent_name
+    #     agent.toAggregate = agent_data[3]
+    #     agent.alreadyAggregate = agent_data[4]
+    #     agent.toRemove = agent_data[5]
+    #     agent.context = context
+    #     agent.pt = pt
+    # elif uid[1] == Oligomer.TYPE:
+    #     context = agent_data[4]
+    #     agent_name = agent_data[1]
+    #     toRemove = agent_data[3]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = Oligomer(uid[0], uid[2], agent_name, pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.name = agent_name
+    #     agent.pt = pt
+    #     agent.context = context
+    #     agent.toRemove = toRemove
+    # elif uid[1] == Cytokine.TYPE:
+    #     context = agent_data[3]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = Cytokine(uid[0], uid[2], pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.pt = pt
+    #     agent.context = context
+    #     agent.state = agent_data[1]
+    # return agent
 
 
 # Function to restore the agents in the gut context from saved data
-def restore_agent_gut(agent_data: Tuple):
-    uid = agent_data[0]
-    pt_array = agent_data[2]
-    pt = dpt(pt_array[0], pt_array[1], 0)
+def restore_agent_gut(agent_data: Tuple): #TODO remove repetitions (done)
+    return gut_environment.restore_agent(agent_data, agent_cache, True)
 
-    if uid[1] == AEP.TYPE:
-        context = agent_data[3]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = AEP(uid[0], uid[2], pt, context)
-            agent_cache[uid] = agent
-        agent.state = agent_data[1]
-        agent.context = context
-        agent.pt = pt
-    elif uid[1] == Protein.TYPE:
-        context = agent_data[5]
-        protein_name = agent_data[1]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = Protein(uid[0], uid[2], protein_name, pt, context)
-            agent_cache[uid] = agent
-        agent.toCleave = agent_data[3]
-        agent.toRemove = agent_data[4]
-        agent.context = agent_data[5]
-        agent.pt = pt
-    elif uid[1] == CleavedProtein.TYPE:
-        agent_name = agent_data[1]
-        context = agent_data[6]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = CleavedProtein(uid[0], uid[2], agent_name, pt, context)
-            agent_cache[uid] = agent
-        agent.toAggregate = agent_data[3]
-        agent.alreadyAggregate = agent_data[4]
-        agent.toRemove = agent_data[5]
-        agent.context = context
-        agent.pt = pt
-    elif uid[1] == Oligomer.TYPE:
-        context = agent_data[4]
-        agent_name = agent_data[1]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = Oligomer(uid[0], uid[2], agent_name, pt, context)
-            agent_cache[uid] = agent
-        agent.pt = pt
-        agent.context = context
-        agent.toRemove = agent_data[3]
-    elif uid[1] == ExternalInput.TYPE:
-        context = agent_data[3]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = ExternalInput(uid[0], uid[2], pt, context)
-            agent_cache[uid] = agent
-        agent.pt = pt
-        agent.context = context
-    elif uid[1] == Treatment.TYPE:
-        context = agent_data[3]
-        if uid in agent_cache:
-            agent = agent_cache[uid]
-        else:
-            agent = Treatment(uid[0], uid[2], pt, context)
-            agent_cache[uid] = agent
-        agent.pt = pt
-        agent.context = context
-    return agent
+    # uid = agent_data[0]
+    # pt_array = agent_data[2]
+    # pt = dpt(pt_array[0], pt_array[1], 0)
+
+    # if uid[1] == AEP.TYPE:
+    #     context = agent_data[3]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = AEP(uid[0], uid[2], pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.state = agent_data[1]
+    #     agent.context = context
+    #     agent.pt = pt
+    # elif uid[1] == Protein.TYPE:
+    #     context = agent_data[5]
+    #     protein_name = agent_data[1]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = Protein(uid[0], uid[2], protein_name, pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.toCleave = agent_data[3]
+    #     agent.toRemove = agent_data[4]
+    #     agent.context = agent_data[5]
+    #     agent.pt = pt
+    # elif uid[1] == CleavedProtein.TYPE:
+    #     agent_name = agent_data[1]
+    #     context = agent_data[6]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = CleavedProtein(uid[0], uid[2], agent_name, pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.toAggregate = agent_data[3]
+    #     agent.alreadyAggregate = agent_data[4]
+    #     agent.toRemove = agent_data[5]
+    #     agent.context = context
+    #     agent.pt = pt
+    # elif uid[1] == Oligomer.TYPE:
+    #     context = agent_data[4]
+    #     agent_name = agent_data[1]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = Oligomer(uid[0], uid[2], agent_name, pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.pt = pt
+    #     agent.context = context
+    #     agent.toRemove = agent_data[3]
+    # elif uid[1] == ExternalInput.TYPE:
+    #     context = agent_data[3]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = ExternalInput(uid[0], uid[2], pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.pt = pt
+    #     agent.context = context
+    # elif uid[1] == Treatment.TYPE:
+    #     context = agent_data[3]
+    #     if uid in agent_cache:
+    #         agent = agent_cache[uid]
+    #     else:
+    #         agent = Treatment(uid[0], uid[2], pt, context)
+    #         agent_cache[uid] = agent
+    #     agent.pt = pt
+    #     agent.context = context
+    # return agent
 
 
 class Model:
@@ -952,7 +969,7 @@ class Model:
 
         # Brain steps
 
-    def brain_step(self):
+    def brain_step(self): #TODO evaluate if remove repetition (probably not because I've chosen to keep the 'Model' class defined in this file)
         self.brain_context.synchronize(restore_agent_brain)
 
         def gather_agents_to_remove():
@@ -1041,7 +1058,7 @@ class Model:
 
             # Function to add a cleaved protein agent to the brain context
 
-    def brain_add_cleaved_protein(self):
+    def brain_add_cleaved_protein(self): #TODO evaluate if remove repetition (probably not because I've chosen to keep the 'Model' class defined in this file)
         self.added_agents_id += 1
         possible_types = [params["protein_name"]["alpha_syn"], params["protein_name"]["tau"]]
         random_index = np.random.randint(0, len(possible_types))
@@ -1052,7 +1069,7 @@ class Model:
         self.move(cleaved_protein, cleaved_protein.pt, cleaved_protein.context)
 
     # Function to add a cleaved protein agent to the gut context
-    def gut_add_cleaved_protein(self, cleaved_protein_name):
+    def gut_add_cleaved_protein(self, cleaved_protein_name): #TODO evaluate if remove repetition (probably not because I've chosen to keep the 'Model' class defined in this file)
         self.added_agents_id += 1
         pt = self.gut_grid.get_random_local_pt(self.rng)
         cleaved_protein = CleavedProtein(self.added_agents_id, self.rank, cleaved_protein_name, pt, 'gut')
@@ -1126,7 +1143,7 @@ class Model:
                 if (self.barrier_impermeability + value_increased) <= params["barrier_impermeability"]:
                     self.barrier_impermeability = self.barrier_impermeability + value_increased
 
-    def gut_step(self):
+    def gut_step(self): #TODO evaluate if remove repetition (probably not because I've chosen to keep the 'Model' class defined in this file)
         self.gut_context.synchronize(restore_agent_gut)
 
         def gather_agents_to_remove():

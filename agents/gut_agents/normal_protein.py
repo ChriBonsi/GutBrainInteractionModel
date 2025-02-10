@@ -15,6 +15,8 @@ class Protein(core.Agent):
         self.toCleave = False
         self.toRemove = False
 
+        self.state = self.return_state() #stopgag parameter
+
     def save(self) -> Tuple:
         return self.uid, self.name, self.pt.coordinates, self.toCleave, self.toRemove
 
@@ -30,3 +32,7 @@ class Protein(core.Agent):
     def change_state(self):
         if not self.toCleave:
             self.toCleave = True
+
+    def return_state(self):
+        """This method was added as a stopgap fix for a structural issue."""
+        return self.toAggregate

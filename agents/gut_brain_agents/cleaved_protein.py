@@ -8,19 +8,29 @@ from repast4py.space import DiscretePoint as dpt
 class CleavedProtein(core.Agent):
     TYPE = 2
 
-    def __init__(self, local_id: int, rank: int, cleaved_protein_name, pt: dpt):
+    def __init__(self, local_id: int, rank: int, name, pt: dpt):
         super().__init__(id=local_id, type=CleavedProtein.TYPE, rank=rank)
-        self.name = cleaved_protein_name
-        self.toAggregate = False
+        self.name = name
+        self.pt = pt
         self.alreadyAggregate = False
         self.toRemove = False
-        self.pt = pt
+        self.toAggregate = False
+        
+        self.state = self.return_state(self) #stopgag parameter
+
+    def setAgentData(self, newName):
+        """
+        Function created as a stopgag due to the inconsistency of the 'state' parameter between agent classes.
+        This function updates the parameter of the class related to the value 'agent_data[1]'.
+        The modified parameter for 'CleavedProtein' class is 'name'.
+        """
+        self.name = newName
 
     def save(self) -> Tuple:
         return self.uid, self.name, self.pt.coordinates, self.toAggregate, self.alreadyAggregate, self.toRemove
 
     def step(self):
-        if self.alreadyAggregate or self.toAggregate or self.pt is None:
+        if self.alreadyAggregate == True or self.toAggregate == True or self.pt is None:
             pass
         else:
             cleaved_nghs_number, _, nghs_coords = self.check_and_get_nghs()
@@ -54,6 +64,10 @@ class CleavedProtein(core.Agent):
     def change_state(self):
         if not self.toAggregate:
             self.toAggregate = True
+
+    def return_state(self):
+        """This method was added as a stopgap fix for a structural issue."""
+        return self.toAggregate
 
     def check_and_get_nghs(self):
         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
