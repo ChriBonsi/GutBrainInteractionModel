@@ -4,55 +4,51 @@ import numpy as np
 from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
+# from gut_brain_system import model
+
 
 class CleavedProtein(core.Agent):
     TYPE = 2
 
-    def __init__(self, local_id: int, rank: int, name, pt: dpt):
+    def __init__(self, local_id: int, rank: int, cleaved_protein_name, pt: dpt, context):
         super().__init__(id=local_id, type=CleavedProtein.TYPE, rank=rank)
-        self.name = name
-        self.pt = pt
+        self.name = cleaved_protein_name
+        self.toAggregate = False
         self.alreadyAggregate = False
         self.toRemove = False
-        self.toAggregate = False
-        
-        self.state = self.return_state(self) #stopgag parameter
-
-    def setAgentData(self, newName):
-        """
-        Function created as a stopgag due to the inconsistency of the 'state' parameter between agent classes.
-        This function updates the parameter of the class related to the value 'agent_data[1]'.
-        The modified parameter for 'CleavedProtein' class is 'name'.
-        """
-        self.name = newName
+        self.pt = pt
+        self.context = context
 
     def save(self) -> Tuple:
-        return self.uid, self.name, self.pt.coordinates, self.toAggregate, self.alreadyAggregate, self.toRemove
+        return self.uid, self.name, self.pt.coordinates, self.toAggregate, self.alreadyAggregate, self.toRemove, self.context
 
-    def step(self):
+    def step(self, model):
         if self.alreadyAggregate == True or self.toAggregate == True or self.pt is None:
             pass
         else:
-            cleaved_nghs_number, _, nghs_coords = self.check_and_get_nghs()
+            cleaved_nghs_number, _, nghs_coords = self.check_and_get_nghs(model)
             if cleaved_nghs_number == 0:
                 random_index = np.random.randint(0, len(nghs_coords))
-                model.move(self, nghs_coords[random_index])
+                model.move(self, dpt(nghs_coords[random_index][0], nghs_coords[random_index][1]), self.context)
             elif cleaved_nghs_number >= 4:
                 self.change_state()
             else:
-                self.change_group_aggregate_status()
+                self.change_group_aggregate_status(model)
 
-    def change_group_aggregate_status(self):
+    def change_group_aggregate_status(self, model):
         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
         for ngh_coords in nghs_coords:
-            nghs_array = model.grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+            if self.context == 'brain':
+                nghs_array = model.brain_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+            else:
+                nghs_array = model.gut_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
             for ngh in nghs_array:
                 if ngh is not None:
                     ngh.alreadyAggregate = False
 
-    def is_valid(self):
+    def is_valid(self, model):
         cont = 0
-        _, nghs_cleaved, _ = self.check_and_get_nghs()
+        _, nghs_cleaved, _ = self.check_and_get_nghs(model)
         for agent in nghs_cleaved:
             if agent.alreadyAggregate:
                 cont += 1
@@ -65,16 +61,15 @@ class CleavedProtein(core.Agent):
         if not self.toAggregate:
             self.toAggregate = True
 
-    def return_state(self):
-        """This method was added as a stopgap fix for a structural issue."""
-        return self.toAggregate
-
-    def check_and_get_nghs(self):
+    def check_and_get_nghs(self, model):
         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
         cont = 0
         cleavedProteins = []
         for ngh_coords in nghs_coords:
-            ngh_array = model.grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+            if self.context == 'brain':
+                ngh_array = model.brain_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+            else:
+                ngh_array = model.gut_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
             for ngh in ngh_array:
                 if type(ngh) == CleavedProtein and self.name == ngh.name:
                     cleavedProteins.append(ngh)

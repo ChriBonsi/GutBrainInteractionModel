@@ -4,38 +4,36 @@ import numpy as np
 from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
+# from repast4py.parameters import params
+# from gut_brain_system import model
+
 
 class Oligomer(core.Agent):
     TYPE = 3
 
-    def __init__(self, local_id: int, rank: int, name, pt):
+    def __init__(self, local_id: int, rank: int, oligomer_name, pt: dpt, context):
         super().__init__(id=local_id, type=Oligomer.TYPE, rank=rank)
-        self.name = name
+        self.name = oligomer_name
         self.pt = pt
         self.toRemove = False
-
-        self.state = self.return_state(self) #stopgag parameter
+        self.toMove = False
+        self.context = context
 
     def save(self) -> Tuple:
-        return self.uid, self.name, self.pt.coordinates, self.toRemove
+        return self.uid, self.name, self.pt.coordinates, self.toRemove, self.context
 
-    def step(self):
+    # Oligomer step function
+    def step(self, model):
         if self.pt is None:
             return
         else:
             nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
             random_index = np.random.randint(0, len(nghs_coords))
             chosen_dpt = dpt(nghs_coords[random_index][0], nghs_coords[random_index][1])
-            model.move(self, chosen_dpt)
-
-    def return_state(self):
-        """This method was added as a stopgap fix for a structural issue."""
-        return self.name
-    
-    def setAgentData(self, newName):
-        """
-        Function created as a stopgag due to the inconsistency of the 'state' parameter between agent classes.
-        This function updates the parameter of the class related to the value 'agent_data[1]'.
-        The modified parameter for 'Oligomer' class is 'name'.
-        """
-        self.name = newName
+            model.move(self, chosen_dpt, self.context)
+            if len(nghs_coords) <= 6 and self.context == 'gut':
+                if model.barrier_impermeability < model.params["barrier_impermeability"]:
+                    percentage_threshold = int((model.barrier_impermeability * model.params["barrier_impermeability"]) / 100)
+                    choice = np.random.randint(0, 100)
+                    if choice > percentage_threshold:
+                        self.toMove = True

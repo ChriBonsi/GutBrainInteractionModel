@@ -1,43 +1,40 @@
 from typing import Tuple
-
 import numpy as np
+from repast4py.space import DiscretePoint as dpt
 from repast4py import core
-from repast4py.parameters import params
+
+# from repast4py.parameters import params
+# from gut_brain_system import model
 
 
 class Neuron(core.Agent):
-    TYPE = 1
+    TYPE = 7
 
-    def __init__(self, local_id: int, rank: int, initial_state, pt):
+    def __init__(self, local_id: int, rank: int, initial_state, pt: dpt, context: str):
         super().__init__(id=local_id, type=Neuron.TYPE, rank=rank)
         self.state = initial_state
         self.pt = pt
         self.toRemove = False
+        self.context = context
 
     def save(self) -> Tuple:
-        return self.uid, self.state, self.pt.coordinates, self.toRemove
+        return self.uid, self.state, self.pt.coordinates, self.toRemove, self.context
 
-    def step(self):
+    # Neuron step function
+    def step(self, model):
         difference_pro_anti_cytokine = model.pro_cytokine - model.anti_cytokine
         if difference_pro_anti_cytokine > 0:
             level_of_inflammation = (difference_pro_anti_cytokine * 100) / (model.pro_cytokine + model.anti_cytokine)
             if np.random.randint(0, 100) < level_of_inflammation:
-                self.change_state()
+                self.change_state(model)
         else:
             pass
 
-    def change_state(self):
-        if self.state == params["neuron_state"]["healthy"]:
-            self.state = params["neuron_state"]["damaged"]
-        elif self.state == params["neuron_state"]["damaged"]:
-            self.state = params["neuron_state"]["dead"]
+    # changes the state of the neuron agent
+    def change_state(self, model):
+        if self.state == model.params["neuron_state"]["healthy"]:
+            self.state = model.params["neuron_state"]["damaged"]
+        elif self.state == model.params["neuron_state"]["damaged"]:
+            self.state = model.params["neuron_state"]["dead"]
             self.toRemove = True
             model.dead_neuron += 1
-
-    def setAgentData(self, newState):
-        """
-        Function created as a stopgag due to the inconsistency of the 'state' parameter between agent classes.
-        This function updates the parameter of the class related to the value 'agent_data[1]'.
-        The modified parameter for 'Neuron' class is 'state'.
-        """
-        self.state = newState
