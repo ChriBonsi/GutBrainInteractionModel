@@ -443,14 +443,14 @@ def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = Fal
 #        self.runner.execute()
 
 
-def run(params: Dict):
-    global model
-    model = Model(MPI.COMM_WORLD, params)
-    model.start()
+# def run(params: Dict):
+#     global model
+#     model = Model(MPI.COMM_WORLD, params)
+#     model.start()
 
 
 if __name__ == "__main__":
     parser = parameters.create_args_parser()
     args = parser.parse_args()
     params = parameters.init_params(args.parameters_file, args.parameters)
-    run(params)
+    # run(params)
