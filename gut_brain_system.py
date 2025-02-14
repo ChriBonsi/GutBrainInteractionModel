@@ -26,7 +26,6 @@ from agents.gut_brain_agents.cleaved_protein    import CleavedProtein
 from agents.gut_brain_agents.oligomer           import Oligomer
 #endregion
 
-
 # Class to make the graphics of the simulation
 class GUI:
     def __init__(self, width, height, gut_context, brain_context, grid_dimensions=(100, 100)):
@@ -317,219 +316,219 @@ class GutBrainInterface:
         self.gut_context.remove(agent)
 
 
-class AEP(core.Agent):
-    TYPE = 0
+# class AEP(core.Agent):
+#     TYPE = 0
 
-    def __init__(self, local_id: int, rank: int, pt: dpt, context):
-        super().__init__(id=local_id, type=AEP.TYPE, rank=rank)
-        self.state = params["aep_state"]["active"]
-        self.pt = pt
-        self.context = context
+#     def __init__(self, local_id: int, rank: int, pt: dpt, context):
+#         super().__init__(id=local_id, type=AEP.TYPE, rank=rank)
+#         self.state = params["aep_state"]["active"]
+#         self.pt = pt
+#         self.context = context
 
-    def save(self) -> Tuple:
-        return self.uid, self.state, self.pt.coordinates, self.context
+#     def save(self) -> Tuple:
+#         return self.uid, self.state, self.pt.coordinates, self.context
 
-    # returns True if the agent is hyperactive, False otherwise
-    def is_hyperactive(self):
-        if self.state == params["aep_state"]["active"]:
-            return False
-        else:
-            return True
+#     # returns True if the agent is hyperactive, False otherwise
+#     def is_hyperactive(self):
+#         if self.state == params["aep_state"]["active"]:
+#             return False
+#         else:
+#             return True
 
-    # AEP step function   
-    def step(self):
-        if self.pt is None:
-            return
-        nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
-        protein = self.percepts(nghs_coords)
-        if protein is not None:
-            if self.is_hyperactive():
-                self.cleave(protein)
-        else:
-            random_index = np.random.randint(0, len(nghs_coords))
-            model.move(self, dpt(nghs_coords[random_index][0], nghs_coords[random_index][1]), self.context)
+#     # AEP step function   
+#     def step(self):
+#         if self.pt is None:
+#             return
+#         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+#         protein = self.percepts(nghs_coords)
+#         if protein is not None:
+#             if self.is_hyperactive():
+#                 self.cleave(protein)
+#         else:
+#             random_index = np.random.randint(0, len(nghs_coords))
+#             model.move(self, dpt(nghs_coords[random_index][0], nghs_coords[random_index][1]), self.context)
 
-    # returns the protein agent in the neighborhood of the agent
-    def percepts(self, nghs_coords):
-        for ngh_coords in nghs_coords:
-            nghs_array = model.gut_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
-            for ngh in nghs_array:
-                if type(ngh) == Protein:
-                    return ngh
-        return None
+#     # returns the protein agent in the neighborhood of the agent
+#     def percepts(self, nghs_coords):
+#         for ngh_coords in nghs_coords:
+#             nghs_array = model.gut_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+#             for ngh in nghs_array:
+#                 if type(ngh) == Protein:
+#                     return ngh
+#         return None
 
-        # cleaves the protein agent
+#         # cleaves the protein agent
 
-    def cleave(self, protein):
-        protein.change_state()
-
-
-class Protein(core.Agent):
-    TYPE = 1
-
-    def __init__(self, local_id: int, rank: int, protein_name, pt: dpt, context):
-        super().__init__(id=local_id, type=Protein.TYPE, rank=rank)
-        self.name = protein_name
-        self.pt = pt
-        self.toCleave = False
-        self.toRemove = False
-        self.context = context
-
-    def save(self) -> Tuple:
-        return self.uid, self.name, self.pt.coordinates, self.toCleave, self.toRemove, self.context
-
-    # Protein step function
-    def step(self):
-        if self.pt is None:
-            return
-        else:
-            nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
-            random_index = np.random.randint(0, len(nghs_coords))
-            chosen_dpt = dpt(nghs_coords[random_index][0], nghs_coords[random_index][1])
-            model.move(self, chosen_dpt, self.context)
-
-    # changes the state of the protein agent
-    def change_state(self):
-        if not self.toCleave:
-            self.toCleave = True
+#     def cleave(self, protein):
+#         protein.change_state()
 
 
-class CleavedProtein(core.Agent):
-    TYPE = 2
+# class Protein(core.Agent):
+#     TYPE = 1
 
-    def __init__(self, local_id: int, rank: int, cleaved_protein_name, pt: dpt, context):
-        super().__init__(id=local_id, type=CleavedProtein.TYPE, rank=rank)
-        self.name = cleaved_protein_name
-        self.toAggregate = False
-        self.alreadyAggregate = False
-        self.toRemove = False
-        self.pt = pt
-        self.context = context
+#     def __init__(self, local_id: int, rank: int, protein_name, pt: dpt, context):
+#         super().__init__(id=local_id, type=Protein.TYPE, rank=rank)
+#         self.name = protein_name
+#         self.pt = pt
+#         self.toCleave = False
+#         self.toRemove = False
+#         self.context = context
 
-    def save(self) -> Tuple:
-        return self.uid, self.name, self.pt.coordinates, self.toAggregate, self.alreadyAggregate, self.toRemove, self.context
+#     def save(self) -> Tuple:
+#         return self.uid, self.name, self.pt.coordinates, self.toCleave, self.toRemove, self.context
 
-    def step(self):
-        if self.alreadyAggregate == True or self.toAggregate == True or self.pt is None:
-            pass
-        else:
-            cleaved_nghs_number, _, nghs_coords = self.check_and_get_nghs()
-            if cleaved_nghs_number == 0:
-                random_index = np.random.randint(0, len(nghs_coords))
-                model.move(self, dpt(nghs_coords[random_index][0], nghs_coords[random_index][1]), self.context)
-            elif cleaved_nghs_number >= 4:
-                self.change_state()
-            else:
-                self.change_group_aggregate_status()
+#     # Protein step function
+#     def step(self):
+#         if self.pt is None:
+#             return
+#         else:
+#             nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+#             random_index = np.random.randint(0, len(nghs_coords))
+#             chosen_dpt = dpt(nghs_coords[random_index][0], nghs_coords[random_index][1])
+#             model.move(self, chosen_dpt, self.context)
 
-    def change_group_aggregate_status(self):
-        nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
-        for ngh_coords in nghs_coords:
-            if self.context == 'brain':
-                nghs_array = model.brain_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
-            else:
-                nghs_array = model.gut_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
-            for ngh in nghs_array:
-                if ngh is not None:
-                    ngh.alreadyAggregate = False
-
-    def is_valid(self):
-        cont = 0
-        _, nghs_cleaved, _ = self.check_and_get_nghs()
-        for agent in nghs_cleaved:
-            if agent.alreadyAggregate:
-                cont += 1
-        if cont >= 4:
-            return True
-        else:
-            return False
-
-    def change_state(self):
-        if not self.toAggregate:
-            self.toAggregate = True
-
-    def check_and_get_nghs(self):
-        nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
-        cont = 0
-        cleavedProteins = []
-        for ngh_coords in nghs_coords:
-            if self.context == 'brain':
-                ngh_array = model.brain_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
-            else:
-                ngh_array = model.gut_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
-            for ngh in ngh_array:
-                if type(ngh) == CleavedProtein and self.name == ngh.name:
-                    cleavedProteins.append(ngh)
-                    if ngh.toAggregate == False and ngh.alreadyAggregate == False:
-                        ngh.alreadyAggregate = True
-                        cont += 1
-        return cont, cleavedProteins, nghs_coords
+#     # changes the state of the protein agent
+#     def change_state(self):
+#         if not self.toCleave:
+#             self.toCleave = True
 
 
-class Oligomer(core.Agent):
-    TYPE = 3
+# class CleavedProtein(core.Agent):
+#     TYPE = 2
 
-    def __init__(self, local_id: int, rank: int, oligomer_name, pt: dpt, context):
-        super().__init__(id=local_id, type=Oligomer.TYPE, rank=rank)
-        self.name = oligomer_name
-        self.pt = pt
-        self.toRemove = False
-        self.toMove = False
-        self.context = context
+#     def __init__(self, local_id: int, rank: int, cleaved_protein_name, pt: dpt, context):
+#         super().__init__(id=local_id, type=CleavedProtein.TYPE, rank=rank)
+#         self.name = cleaved_protein_name
+#         self.toAggregate = False
+#         self.alreadyAggregate = False
+#         self.toRemove = False
+#         self.pt = pt
+#         self.context = context
 
-    def save(self) -> Tuple:
-        return self.uid, self.name, self.pt.coordinates, self.toRemove, self.context
+#     def save(self) -> Tuple:
+#         return self.uid, self.name, self.pt.coordinates, self.toAggregate, self.alreadyAggregate, self.toRemove, self.context
 
-    # Oligomer step function
-    def step(self):
-        if self.pt is None:
-            return
-        else:
-            nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
-            random_index = np.random.randint(0, len(nghs_coords))
-            chosen_dpt = dpt(nghs_coords[random_index][0], nghs_coords[random_index][1])
-            model.move(self, chosen_dpt, self.context)
-            if len(nghs_coords) <= 6 and self.context == 'gut':
-                if model.barrier_impermeability < params["barrier_impermeability"]:
-                    percentage_threshold = int((model.barrier_impermeability * params["barrier_impermeability"]) / 100)
-                    choice = np.random.randint(0, 100)
-                    if choice > percentage_threshold:
-                        self.toMove = True
+#     def step(self):
+#         if self.alreadyAggregate == True or self.toAggregate == True or self.pt is None:
+#             pass
+#         else:
+#             cleaved_nghs_number, _, nghs_coords = self.check_and_get_nghs()
+#             if cleaved_nghs_number == 0:
+#                 random_index = np.random.randint(0, len(nghs_coords))
+#                 model.move(self, dpt(nghs_coords[random_index][0], nghs_coords[random_index][1]), self.context)
+#             elif cleaved_nghs_number >= 4:
+#                 self.change_state()
+#             else:
+#                 self.change_group_aggregate_status()
+
+#     def change_group_aggregate_status(self):
+#         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+#         for ngh_coords in nghs_coords:
+#             if self.context == 'brain':
+#                 nghs_array = model.brain_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+#             else:
+#                 nghs_array = model.gut_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+#             for ngh in nghs_array:
+#                 if ngh is not None:
+#                     ngh.alreadyAggregate = False
+
+#     def is_valid(self):
+#         cont = 0
+#         _, nghs_cleaved, _ = self.check_and_get_nghs()
+#         for agent in nghs_cleaved:
+#             if agent.alreadyAggregate:
+#                 cont += 1
+#         if cont >= 4:
+#             return True
+#         else:
+#             return False
+
+#     def change_state(self):
+#         if not self.toAggregate:
+#             self.toAggregate = True
+
+#     def check_and_get_nghs(self):
+#         nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+#         cont = 0
+#         cleavedProteins = []
+#         for ngh_coords in nghs_coords:
+#             if self.context == 'brain':
+#                 ngh_array = model.brain_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+#             else:
+#                 ngh_array = model.gut_grid.get_agents(dpt(ngh_coords[0], ngh_coords[1]))
+#             for ngh in ngh_array:
+#                 if type(ngh) == CleavedProtein and self.name == ngh.name:
+#                     cleavedProteins.append(ngh)
+#                     if ngh.toAggregate == False and ngh.alreadyAggregate == False:
+#                         ngh.alreadyAggregate = True
+#                         cont += 1
+#         return cont, cleavedProteins, nghs_coords
 
 
-class ExternalInput(core.Agent):
-    TYPE = 4
+# class Oligomer(core.Agent):
+#     TYPE = 3
 
-    def __init__(self, local_id: int, rank: int, pt: dpt, context):
-        super().__init__(id=local_id, type=ExternalInput.TYPE, rank=rank)
-        possible_types = [params["external_input"]["diet"], params["external_input"]["antibiotics"],
-                          params["external_input"]["stress"]]
-        random_index = np.random.randint(0, len(possible_types))
-        input_name = possible_types[random_index]
-        self.input_name = input_name
-        self.pt = pt
-        self.context = context
+#     def __init__(self, local_id: int, rank: int, oligomer_name, pt: dpt, context):
+#         super().__init__(id=local_id, type=Oligomer.TYPE, rank=rank)
+#         self.name = oligomer_name
+#         self.pt = pt
+#         self.toRemove = False
+#         self.toMove = False
+#         self.context = context
 
-    def save(self) -> Tuple:
-        return self.uid, self.input_name, self.pt.coordinates, self.context
+#     def save(self) -> Tuple:
+#         return self.uid, self.name, self.pt.coordinates, self.toRemove, self.context
 
-    # External input step function
-    def step(self):
-        if model.barrier_impermeability >= model.barrier_permeability_threshold_stop:
-            def adjust_bacteria(good_bacteria_factor, pathogenic_bacteria_factor):
-                to_remove = int(
-                    (model.microbiota_good_bacteria_class * np.random.uniform(0, good_bacteria_factor)) / 100)
-                model.microbiota_good_bacteria_class -= to_remove
-                to_add = int((params["microbiota_pathogenic_bacteria_class"] * np.random.uniform(0,
-                                                                                                 pathogenic_bacteria_factor)) / 100)
-                model.microbiota_pathogenic_bacteria_class += to_add
+#     # Oligomer step function
+#     def step(self):
+#         if self.pt is None:
+#             return
+#         else:
+#             nghs_coords = model.ngh_finder.find(self.pt.x, self.pt.y)
+#             random_index = np.random.randint(0, len(nghs_coords))
+#             chosen_dpt = dpt(nghs_coords[random_index][0], nghs_coords[random_index][1])
+#             model.move(self, chosen_dpt, self.context)
+#             if len(nghs_coords) <= 6 and self.context == 'gut':
+#                 if model.barrier_impermeability < params["barrier_impermeability"]:
+#                     percentage_threshold = int((model.barrier_impermeability * params["barrier_impermeability"]) / 100)
+#                     choice = np.random.randint(0, 100)
+#                     if choice > percentage_threshold:
+#                         self.toMove = True
 
-            if self.input_name == params["external_input"]["diet"]:
-                adjust_bacteria(3, 3)
-            elif self.input_name == params["external_input"]["antibiotics"]:
-                adjust_bacteria(5, 2)
-            else:
-                adjust_bacteria(3, 3)
+
+# class ExternalInput(core.Agent):
+#     TYPE = 4
+
+#     def __init__(self, local_id: int, rank: int, pt: dpt, context):
+#         super().__init__(id=local_id, type=ExternalInput.TYPE, rank=rank)
+#         possible_types = [params["external_input"]["diet"], params["external_input"]["antibiotics"],
+#                           params["external_input"]["stress"]]
+#         random_index = np.random.randint(0, len(possible_types))
+#         input_name = possible_types[random_index]
+#         self.input_name = input_name
+#         self.pt = pt
+#         self.context = context
+
+#     def save(self) -> Tuple:
+#         return self.uid, self.input_name, self.pt.coordinates, self.context
+
+#     # External input step function
+#     def step(self):
+#         if model.barrier_impermeability >= model.barrier_permeability_threshold_stop:
+#             def adjust_bacteria(good_bacteria_factor, pathogenic_bacteria_factor):
+#                 to_remove = int(
+#                     (model.microbiota_good_bacteria_class * np.random.uniform(0, good_bacteria_factor)) / 100)
+#                 model.microbiota_good_bacteria_class -= to_remove
+#                 to_add = int((params["microbiota_pathogenic_bacteria_class"] * np.random.uniform(0,
+#                                                                                                  pathogenic_bacteria_factor)) / 100)
+#                 model.microbiota_pathogenic_bacteria_class += to_add
+
+#             if self.input_name == params["external_input"]["diet"]:
+#                 adjust_bacteria(3, 3)
+#             elif self.input_name == params["external_input"]["antibiotics"]:
+#                 adjust_bacteria(5, 2)
+#             else:
+#                 adjust_bacteria(3, 3)
 
 
 # class Treatment(core.Agent):
@@ -829,6 +828,7 @@ class Model:
 
     # Initialize the model
     def __init__(self, comm: MPI.Intracomm, params: Dict):
+        self.params = params #TODO evaluate if to solve this use of params
         self.comm = comm
         self.rank = comm.Get_rank()
         # Create shared contexts for the brain and the gut
@@ -930,7 +930,12 @@ class Model:
                 agent = agent_class(self.added_agents_id + j, self.rank, params["protein_name"][state_key], pt, region)
             else:
                 # For agents without special state keys
-                agent = agent_class(self.added_agents_id + j, self.rank, pt, region)
+                # agent = agent_class(self.added_agents_id + j, self.rank, pt, region)
+                try:
+                    agent = agent_class(self.added_agents_id + j, self.rank, pt, region, self)
+                except(TypeError):
+                    agent = agent_class(self.added_agents_id + j, self.rank, pt, region)
+
             context.add(agent)
             self.move(agent, pt, agent.context)
         self.added_agents_id += pp_count
@@ -988,7 +993,7 @@ class Model:
 
         # Let each agent perform its step
         for agent in self.brain_context.agents():
-            agent.step()
+            agent.step(model)
 
         # Collect data and perform operations based on agent states
         oligomer_to_remove = []
@@ -1021,9 +1026,9 @@ class Model:
         for agent in all_true_cleaved_aggregates:
             if agent.uid in removed_ids:
                 continue
-            if agent.toAggregate and agent.is_valid():
+            if agent.toAggregate and agent.is_valid(model):
                 cont = 0
-                _, agent_nghs_cleaved, _ = agent.check_and_get_nghs()
+                _, agent_nghs_cleaved, _ = agent.check_and_get_nghs(self)
                 for x in agent_nghs_cleaved:
                     if x.alreadyAggregate and x.uid != agent.uid:
                         if cont < 3:
@@ -1103,7 +1108,7 @@ class Model:
     def add_cytokine(self):
         self.added_agents_id += 1
         pt = self.brain_grid.get_random_local_pt(self.rng)
-        cytokine = Cytokine(self.added_agents_id, self.rank, pt, 'brain')
+        cytokine = Cytokine(self.added_agents_id, self.rank, pt, 'brain', self)
         self.brain_context.add(cytokine)
         self.move(cytokine, cytokine.pt, 'brain')
 
@@ -1160,7 +1165,7 @@ class Model:
         self.gut_context.synchronize(restore_agent_gut)
 
         for agent in self.gut_context.agents():
-            agent.step()
+            agent.step(self)
 
         protein_to_remove = []
         all_true_cleaved_aggregates = []
@@ -1194,9 +1199,9 @@ class Model:
         for agent in all_true_cleaved_aggregates:
             if agent.uid in removed_ids:
                 continue
-            if agent.toAggregate and agent.is_valid():
+            if agent.toAggregate and agent.is_valid(model):
                 cont = 0
-                _, agent_nghs_cleaved, _ = agent.check_and_get_nghs()
+                _, agent_nghs_cleaved, _ = agent.check_and_get_nghs(model)
                 for x in agent_nghs_cleaved:
                     if x.alreadyAggregate and x.uid != agent.uid:
                         if cont < 3:
