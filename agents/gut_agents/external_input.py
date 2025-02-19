@@ -4,9 +4,6 @@ import numpy as np
 from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
-# from repast4py.parameters import params
-# from gut_brain_system import model
-
 
 class ExternalInput(core.Agent):
     TYPE = 4
@@ -32,7 +29,7 @@ class ExternalInput(core.Agent):
                     (model.microbiota_good_bacteria_class * np.random.uniform(0, good_bacteria_factor)) / 100)
                 model.microbiota_good_bacteria_class -= to_remove
                 to_add = int((model.params["microbiota_pathogenic_bacteria_class"] * np.random.uniform(0,
-                                                                                                 pathogenic_bacteria_factor)) / 100)
+                                                                                                       pathogenic_bacteria_factor)) / 100)
                 model.microbiota_pathogenic_bacteria_class += to_add
 
             if self.input_name == model.params["external_input"]["diet"]:

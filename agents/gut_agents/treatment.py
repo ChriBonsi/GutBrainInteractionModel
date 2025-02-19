@@ -4,9 +4,6 @@ import numpy as np
 from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
-# from repast4py.parameters import params
-# from gut_brain_system import model
-
 
 class Treatment(core.Agent):
     TYPE = 5

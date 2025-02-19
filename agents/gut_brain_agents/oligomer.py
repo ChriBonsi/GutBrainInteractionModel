@@ -4,9 +4,6 @@ import numpy as np
 from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
-# from repast4py.parameters import params
-# from gut_brain_system import model
-
 
 class Oligomer(core.Agent):
     TYPE = 3
@@ -33,7 +30,8 @@ class Oligomer(core.Agent):
             model.move(self, chosen_dpt, self.context)
             if len(nghs_coords) <= 6 and self.context == 'gut':
                 if model.barrier_impermeability < model.params["barrier_impermeability"]:
-                    percentage_threshold = int((model.barrier_impermeability * model.params["barrier_impermeability"]) / 100)
+                    percentage_threshold = int(
+                        (model.barrier_impermeability * model.params["barrier_impermeability"]) / 100)
                     choice = np.random.randint(0, 100)
                     if choice > percentage_threshold:
                         self.toMove = True

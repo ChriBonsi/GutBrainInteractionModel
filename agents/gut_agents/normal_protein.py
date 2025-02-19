@@ -4,8 +4,6 @@ import numpy as np
 from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
-# from gut_brain_system import model
-
 
 class Protein(core.Agent):
     TYPE = 1

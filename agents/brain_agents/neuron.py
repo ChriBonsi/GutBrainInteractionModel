@@ -1,10 +1,8 @@
 from typing import Tuple
-import numpy as np
-from repast4py.space import DiscretePoint as dpt
-from repast4py import core
 
-# from repast4py.parameters import params
-# from gut_brain_system import model
+import numpy as np
+from repast4py import core
+from repast4py.space import DiscretePoint as dpt
 
 
 class Neuron(core.Agent):

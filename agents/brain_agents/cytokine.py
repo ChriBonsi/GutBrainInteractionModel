@@ -2,7 +2,6 @@ from typing import Tuple
 
 import numpy as np
 from repast4py import core
-# from repast4py.parameters import params
 from repast4py.space import DiscretePoint as dpt
 
 from agents.brain_agents.microglia import Microglia
@@ -11,12 +10,12 @@ from agents.brain_agents.microglia import Microglia
 class Cytokine(core.Agent):
     TYPE = 8
 
-    # def __init__(self, local_id: int, rank: int, pt: dpt, context):
     def __init__(self, local_id: int, rank: int, pt: dpt, context, model):
         super().__init__(id=local_id, type=Cytokine.TYPE, rank=rank)
         self.pt = pt
         self.context = context
-        possible_types = [model.params["cyto_state"]["pro_inflammatory"], model.params["cyto_state"]["non_inflammatory"]]
+        possible_types = [model.params["cyto_state"]["pro_inflammatory"],
+                          model.params["cyto_state"]["non_inflammatory"]]
         random_index = np.random.randint(0, len(possible_types))
         self.state = possible_types[random_index]
         if self.state == model.params["cyto_state"]["pro_inflammatory"]:

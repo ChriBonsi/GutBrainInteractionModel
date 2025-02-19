@@ -1,12 +1,11 @@
 from typing import Tuple
+
 import numpy as np
 from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
-# from repast4py.parameters import params
-# from gut_brain_system import model
-
 from agents.gut_agents.normal_protein import Protein
+
 
 class AEP(core.Agent):
     TYPE = 0
