@@ -22,7 +22,7 @@ class ExternalInput(core.Agent):
         return self.uid, self.input_name, self.pt.coordinates, self.context
 
     # External input step function
-    def step(self, model):
+    def step(self, model): #TODO adapt for the 'diet update'
         if model.barrier_impermeability >= model.barrier_permeability_threshold_stop:
             def adjust_bacteria(good_bacteria_factor, pathogenic_bacteria_factor):
                 to_remove = int(

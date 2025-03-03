@@ -318,13 +318,13 @@ agent_cache = {}
 
 
 # Function to restore the agents in the brain context from saved data
-def restore_agent_brain(agent_data: Tuple):  # TODO remove repetiotion (done)
+def restore_agent_brain(agent_data: Tuple):
 
     return brain_environment.restore_agent(agent_data, agent_cache, True)
 
 
 # Function to restore the agents in the gut context from saved data
-def restore_agent_gut(agent_data: Tuple):  # TODO remove repetitions (done)
+def restore_agent_gut(agent_data: Tuple):
     return gut_environment.restore_agent(agent_data, agent_cache, True)
 
 
@@ -332,7 +332,7 @@ class Model:
 
     # Initialize the model
     def __init__(self, comm: MPI.Intracomm, params: Dict):
-        self.params = params  # TODO evaluate if to solve this use of params
+        self.params = params
         self.comm = comm
         self.rank = comm.Get_rank()
         # Create shared contexts for the brain and the gut
@@ -478,7 +478,7 @@ class Model:
 
         # Brain steps
 
-    def brain_step(self):  # TODO evaluate if remove repetition (probably not because I've chosen to keep the 'Model' class defined in this file)
+    def brain_step(self):
         self.brain_context.synchronize(restore_agent_brain)
 
         def gather_agents_to_remove():
@@ -568,7 +568,7 @@ class Model:
             # Function to add a cleaved protein agent to the brain context
 
     def brain_add_cleaved_protein(
-            self):  # TODO evaluate if remove repetition (probably not because I've chosen to keep the 'Model' class defined in this file)
+            self):
         self.added_agents_id += 1
         possible_types = [params["protein_name"]["alpha_syn"], params["protein_name"]["tau"]]
         random_index = np.random.randint(0, len(possible_types))
@@ -579,7 +579,7 @@ class Model:
         self.move(cleaved_protein, cleaved_protein.pt, cleaved_protein.context)
 
     # Function to add a cleaved protein agent to the gut context
-    def gut_add_cleaved_protein(self, cleaved_protein_name):  # TODO evaluate if remove repetition (probably not because I've chosen to keep the 'Model' class defined in this file)
+    def gut_add_cleaved_protein(self, cleaved_protein_name):
         self.added_agents_id += 1
         pt = self.gut_grid.get_random_local_pt(self.rng)
         cleaved_protein = CleavedProtein(self.added_agents_id, self.rank, cleaved_protein_name, pt, 'gut')
@@ -653,7 +653,7 @@ class Model:
                 if (self.barrier_impermeability + value_increased) <= params["barrier_impermeability"]:
                     self.barrier_impermeability = self.barrier_impermeability + value_increased
 
-    def gut_step(self):  # TODO evaluate if remove repetition (probably not because I've chosen to keep the 'Model' class defined in this file)
+    def gut_step(self):
         self.gut_context.synchronize(restore_agent_gut)
 
         def gather_agents_to_remove():
