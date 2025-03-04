@@ -12,7 +12,8 @@ microbiota_diversity_threshold: 10000
 
 # To start the dysbyosis
 external_input.count: 10
-external_input: { diet: "diet",
+external_input: { unhealthy_diet: "unhealthy_diet",
+                  healthy_diet: "healthy_diet",
                   antibiotics: "antibiotics",
                   stress: "stress" }
 
@@ -20,7 +21,7 @@ external_input: { diet: "diet",
 treatment: True
 treatment_input.count: 10
 
-treatment_input: { diet: "diet",
+treatment_input: { # diet: "diet",
                    probiotics: "probiotics" }
 
 # The agents

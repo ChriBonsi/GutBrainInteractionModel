@@ -10,9 +10,10 @@ class Treatment(core.Agent):
 
     def __init__(self, local_id: int, rank: int, pt: dpt, context, model):
         super().__init__(id=local_id, type=Treatment.TYPE, rank=rank)
-        possible_types = [model.params["treatment_input"]["diet"], model.params["treatment_input"]["probiotics"]]
+        possible_types = list(model.params["treatment_input"].keys())
         random_index = np.random.randint(0, len(possible_types))
         input_name = possible_types[random_index]
+
         self.pt = pt
         self.input_name = input_name
         self.context = context
@@ -31,7 +32,7 @@ class Treatment(core.Agent):
                                                                                                 pathogenic_bacteria_factor)) / 100)
                 model.microbiota_pathogenic_bacteria_class -= to_remove
 
-            if self.input_name == model.params["treatment_input"]["diet"]:
-                adjust_bacteria(3, 2)
-            elif self.input_name == model.params["treatment_input"]["probiotics"]:
+            # if self.input_name == model.params["treatment_input"]["diet"]:
+            #     adjust_bacteria(3, 2)
+            if self.input_name == model.params["treatment_input"]["probiotics"]:
                 adjust_bacteria(4, 4)

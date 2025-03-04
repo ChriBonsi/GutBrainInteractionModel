@@ -10,10 +10,10 @@ class ExternalInput(core.Agent):
 
     def __init__(self, local_id: int, rank: int, pt: dpt, context, model):
         super().__init__(id=local_id, type=ExternalInput.TYPE, rank=rank)
-        possible_types = [model.params["external_input"]["diet"], model.params["external_input"]["antibiotics"],
-                          model.params["external_input"]["stress"]]
+        possible_types = list(model.params["external_input"].keys())
         random_index = np.random.randint(0, len(possible_types))
         input_name = possible_types[random_index]
+
         self.input_name = input_name
         self.pt = pt
         self.context = context
@@ -32,8 +32,10 @@ class ExternalInput(core.Agent):
                                                                                                        pathogenic_bacteria_factor)) / 100)
                 model.microbiota_pathogenic_bacteria_class += to_add
 
-            if self.input_name == model.params["external_input"]["diet"]:
-                adjust_bacteria(3, 3)
+            if self.input_name == model.params["external_input"]["unhealthy_diet"]:
+                adjust_bacteria(8, 8)
+            elif self.input_name == model.params["external_input"]["healthy_diet"]:
+                adjust_bacteria(-8, -8)
             elif self.input_name == model.params["external_input"]["antibiotics"]:
                 adjust_bacteria(5, 2)
             else:
