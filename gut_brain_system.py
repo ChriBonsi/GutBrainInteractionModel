@@ -505,7 +505,6 @@ class Model:
         self.counts.microbiota_pathogenic_bacteria_class = self.microbiota_pathogenic_bacteria_class
         self.counts.barrier_impermeability = self.barrier_impermeability
 
-        print(tick)
         self.data_set.log(tick)
 
     # Function to close the data set and quit Pygame
