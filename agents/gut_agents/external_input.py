@@ -5,6 +5,15 @@ from repast4py import core
 from repast4py.space import DiscretePoint as dpt
 
 
+def adjust_bacteria(model, good_bacteria_factor, pathogenic_bacteria_factor):
+    good_bacteria_change = int((model.good_bact_count * np.random.uniform(0, good_bacteria_factor)) / 100)
+    pathogenic_bacteria_change = int(
+        (model.pathogenic_bact_count * np.random.uniform(0, pathogenic_bacteria_factor)) / 100)
+
+    model.good_bact_count += good_bacteria_change
+    model.pathogenic_bact_count += pathogenic_bacteria_change
+
+
 class ExternalInput(core.Agent):
     TYPE = 4
 
@@ -24,14 +33,6 @@ class ExternalInput(core.Agent):
     # External input step function
     def step(self, model):
         if model.barrier_impermeability >= model.barrier_permeability_threshold_stop:
-            def adjust_bacteria(good_bacteria_factor, pathogenic_bacteria_factor):
-                to_remove = int(
-                    (model.microbiota_good_bacteria_class * np.random.uniform(0, good_bacteria_factor)) / 100)
-                model.microbiota_good_bacteria_class -= to_remove
-                to_add = int((model.params["microbiota_pathogenic_bacteria_class"] * np.random.uniform(0,
-                                                                                                       pathogenic_bacteria_factor)) / 100)
-                model.microbiota_pathogenic_bacteria_class += to_add
-
             good_bact = model.params["external_input"][self.input_name][0]
             pathogen_bact = model.params["external_input"][self.input_name][1]
-            adjust_bacteria(good_bact, pathogen_bact)
+            adjust_bacteria(model, good_bact, pathogen_bact)
