@@ -4,14 +4,12 @@ from typing import Tuple
 import numba
 import numpy as np
 from numba import int32, int64
-from numba.experimental import jitclass
-from repast4py import parameters
 from repast4py.space import DiscretePoint as dpt
 
 from agents.gut_agents.aep import AEP
 from agents.gut_agents.external_input import ExternalInput
-from agents.gut_agents.normal_protein import Protein
 from agents.gut_agents.treatment import Treatment
+from agents.gut_agents.normal_protein import Protein
 from agents.gut_brain_agents.cleaved_protein import CleavedProtein
 from agents.gut_brain_agents.oligomer import Oligomer
 
@@ -39,35 +37,25 @@ def is_equal(a1, a2):
 spec = [('mo', int32[:]), ('no', int32[:]), ('xmin', int32), ('ymin', int32), ('ymax', int32), ('xmax', int32)]
 
 
-@jitclass(spec)
-class GridNghFinder:
+#gut agents
+def create_new_aep(local_id: int, rank: int, pt, model) -> AEP:
+    return AEP(local_id, rank, pt, "gut", model)
 
-    def __init__(self, xmin, ymin, xmax, ymax):
-        self.mo = np.array([-1, 0, 1, -1, 0, 1, -1, 0, 1], dtype=np.int32)
-        self.no = np.array([1, 1, 1, 0, 0, 0, -1, -1, -1], dtype=np.int32)
-        self.xmin = xmin
-        self.ymin = ymin
-        self.xmax = xmax
-        self.ymax = ymax
+def create_new_externalInput(local_id: int, rank: int, pt, model) -> ExternalInput:
+    return ExternalInput(local_id, rank, pt, "gut", model)
 
-    def find(self, x, y):
-        xs = self.mo + x
-        ys = self.no + y
+def create_new_treatment(local_id: int, rank: int, pt, model) -> Treatment:
+    return Treatment(local_id, rank, pt, "gut", model)
 
-        xd = (xs >= self.xmin) & (xs <= self.xmax)
-        xs = xs[xd]
-        ys = ys[xd]
+def create_new_protein(local_id: int, rank: int, protein_name, pt, model) -> Protein:
+    return Protein(local_id, rank, protein_name, pt, "gut")
 
-        yd = (ys >= self.ymin) & (ys <= self.ymax)
-        xs = xs[yd]
-        ys = ys[yd]
+#gut-brain agents
+def create_new_cleavedProtein(local_id: int, rank: int, cleaved_protein_name, pt) -> CleavedProtein:
+    return CleavedProtein(local_id, rank, cleaved_protein_name, pt, "gut")
 
-        return np.stack((xs, ys, np.zeros(len(ys), dtype=np.int32)), axis=-1)
-
-
-# removed to permit the use of a unique common cache (defined in 'gut_brain_system.py')
-# agent_cache = {}
-
+def create_new_Oligomer(local_id: int, rank: int, oligomer_name, pt) -> Oligomer:
+    return Oligomer(local_id, rank, oligomer_name, pt, "gut")
 
 # def restore_agent(agent_data: Tuple):
 def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = False):
@@ -89,8 +77,6 @@ def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = Fal
             if usingContext:
                 agent.context = agent_data[3]
         elif uid[1] == Protein.TYPE:
-            # protein_name = agent_data[1]
-            # agent = Protein(uid[0], uid[2], protein_name, pt)
             if createNewAgent:
                 agent = Protein(uid[0], uid[2], agent_state, pt)
             agent.toCleave = agent_data[3]
@@ -98,8 +84,6 @@ def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = Fal
             if usingContext:
                 agent.context = agent_data[5]
         elif uid[1] == CleavedProtein.TYPE:
-            # cleaved_protein_name = agent_data[1]
-            # agent = CleavedProtein(uid[0], uid[2], cleaved_protein_name, pt)
             if createNewAgent:
                 agent = CleavedProtein(uid[0], uid[2], agent_state, pt)
             agent.toAggregate = agent_data[3]
@@ -108,8 +92,6 @@ def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = Fal
             if usingContext:
                 agent.context = agent_data[6]
         elif uid[1] == Oligomer.TYPE:
-            # oligomer_name = agent_data[1]
-            # agent = Oligomer(uid[0], uid[2], oligomer_name, pt)
             if createNewAgent:
                 agent = Oligomer(uid[0], uid[2], agent_state, pt)
             if usingContext:
@@ -123,7 +105,7 @@ def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = Fal
             if createNewAgent:
                 agent = Treatment(uid[0], uid[2], pt)
             if usingContext:
-                agent.context = agent_data[3]  # agent_cache[uid] = agent
+                agent.context = agent_data[3]
 
     if createNewAgent:
         agent_cache[uid] = agent
@@ -131,9 +113,3 @@ def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = Fal
     agent.pt = pt
 
     return agent
-
-
-if __name__ == "__main__":
-    parser = parameters.create_args_parser()
-    args = parser.parse_args()
-    params = parameters.init_params(args.parameters_file, args.parameters)  # run(params)
