@@ -32,11 +32,6 @@ class ExternalInput(core.Agent):
                                                                                                        pathogenic_bacteria_factor)) / 100)
                 model.microbiota_pathogenic_bacteria_class += to_add
 
-            if self.input_name == model.params["external_input"]["unhealthy_diet"]:
-                adjust_bacteria(8, 8)
-            elif self.input_name == model.params["external_input"]["healthy_diet"]:
-                adjust_bacteria(-8, -8)
-            elif self.input_name == model.params["external_input"]["antibiotics"]:
-                adjust_bacteria(5, 2)
-            else:
-                adjust_bacteria(3, 3)
+            good_bact = model.params["external_input"][self.input_name][0]
+            pathogen_bact = model.params["external_input"][self.input_name][1]
+            adjust_bacteria(good_bact, pathogen_bact)

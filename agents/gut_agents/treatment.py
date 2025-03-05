@@ -28,11 +28,11 @@ class Treatment(core.Agent):
                 to_add = int(
                     (model.params["microbiota_good_bacteria_class"] * np.random.uniform(0, good_bacteria_factor)) / 100)
                 model.microbiota_good_bacteria_class += to_add
+
                 to_remove = int((model.microbiota_pathogenic_bacteria_class * np.random.uniform(0,
                                                                                                 pathogenic_bacteria_factor)) / 100)
                 model.microbiota_pathogenic_bacteria_class -= to_remove
 
-            # if self.input_name == model.params["treatment_input"]["diet"]:
-            #     adjust_bacteria(3, 2)
-            if self.input_name == model.params["treatment_input"]["probiotics"]:
-                adjust_bacteria(4, 4)
+            good_bact = model.params["treatment_input"][self.input_name][0]
+            pathogen_bact = model.params["treatment_input"][self.input_name][1]
+            adjust_bacteria(good_bact, pathogen_bact)
