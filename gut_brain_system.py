@@ -100,8 +100,10 @@ class Model:
 
     # Function to initialize the microbiota parameters
     def init_microbiota_params(self, params):
-        self.microbiota_good_bacteria_class = params["microbiota_good_bacteria_class"]
-        self.microbiota_pathogenic_bacteria_class = params["microbiota_pathogenic_bacteria_class"]
+        # Total count of the good and pathogenic bacteria in the microbiota
+        self.good_bact_count = params["microbiota_good_bacteria_class"]
+        self.pathogenic_bact_count = params["microbiota_pathogenic_bacteria_class"]
+
         self.microbiota_diversity_threshold = params["microbiota_diversity_threshold"]
         self.barrier_impermeability = params["barrier_impermeability"]
         self.barrier_permeability_threshold_stop = params["barrier_permeability_threshold_stop"]
@@ -321,8 +323,8 @@ class Model:
 
     # Function to check if the microbiota is dysbiotic and adjust the barrier impermeability 
     def microbiota_dysbiosis_step(self):
-        if self.microbiota_good_bacteria_class - self.microbiota_pathogenic_bacteria_class <= self.microbiota_diversity_threshold:
-            value_decreased = int((self.params["barrier_impermeability"] * np.random.randint(0, 6)) / 100)
+        if self.good_bact_count - self.pathogenic_bact_count <= self.microbiota_diversity_threshold:
+            value_decreased = int((params["barrier_impermeability"] * np.random.randint(0, 6)) / 100)
             if self.barrier_impermeability - value_decreased <= 0:
                 self.barrier_impermeability = 0
             else:
@@ -501,8 +503,8 @@ class Model:
         self.counts.tau_cleaved_gut = counts["tau_cleaved_gut"]
         self.counts.alpha_oligomer_gut = counts["alpha_oligomer_gut"]
         self.counts.tau_oligomer_gut = counts["tau_oligomer_gut"]
-        self.counts.microbiota_good_bacteria_class = self.microbiota_good_bacteria_class
-        self.counts.microbiota_pathogenic_bacteria_class = self.microbiota_pathogenic_bacteria_class
+        self.counts.microbiota_good_bacteria_class = self.good_bact_count
+        self.counts.microbiota_pathogenic_bacteria_class = self.pathogenic_bact_count
         self.counts.barrier_impermeability = self.barrier_impermeability
 
         self.data_set.log(tick)
