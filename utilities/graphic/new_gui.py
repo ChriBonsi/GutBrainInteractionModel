@@ -4,7 +4,7 @@ import pygame
 # Function to get the color of an agent based on its type and state
 def get_agent_color(agent):
     match (
-    agent.uid[1], agent.name if hasattr(agent, "name") else None, agent.state if hasattr(agent, "state") else None):
+        agent.uid[1], agent.name if hasattr(agent, "name") else None, agent.state if hasattr(agent, "state") else None):
         case (0, _, "active"):  # aep
             return 147, 112, 219
         case (0, _, _):
@@ -155,3 +155,12 @@ class NEWGUI:
 
             color = get_agent_color(agent)
             pygame.draw.circle(self.screen, color, (int(x), int(y)), radius)
+
+    # Function to handle mouse clicks on the buttons
+    def handle_button_click(self, mouse_pos):
+        for button_rect, button_text in self.button_rects:
+            if button_rect.collidepoint(mouse_pos):
+                if button_text == "Play":
+                    self.paused = False
+                elif button_text == "Pause":
+                    self.paused = True
