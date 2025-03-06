@@ -11,7 +11,7 @@ from repast4py.space import DiscretePoint as dpt
 
 from environments import brain_environment, gut_environment
 from utilities.graphic.gridNghFinder import GridNghFinder
-from utilities.graphic.gui import GUI
+from utilities.graphic.new_gui import NEWGUI
 from utilities.gutBrainInterface import GutBrainInterface
 from utilities.log import Log
 
@@ -80,8 +80,8 @@ class Model:
 
         # Initialize Pygame and gui object
         pygame.init()
-        self.screen = GUI(width=1600, height=800, gut_context=self.gut_context, brain_context=self.brain_context,
-                          grid_dimensions=(params['world.width'], params['world.height']))
+        # self.screen = GUI(width=1600, height=800, gut_context=self.gut_context, brain_context=self.brain_context, grid_dimensions=(params['world.width'], params['world.height']))
+        self.screen = NEWGUI(width=1500, height=780, gut_context=self.gut_context, brain_context=self.brain_context)
         pygame.display.set_caption("Gut-Brain Axis Model")
         self.screen.update(gut_context=self.gut_context, brain_context=self.brain_context)
 
