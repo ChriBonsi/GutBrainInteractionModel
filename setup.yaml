@@ -10,7 +10,7 @@ microbiota_good_bacteria_class: 30000
 microbiota_pathogenic_bacteria_class: 10000
 microbiota_diversity_threshold: 10000
 
-# To start the dysbyosis
+# To start the dysbiosis
 # External inputs have a different effect on the microbiota depending on the type of input.
 # The first number affects the good bacteria and the second number the pathogenic bacteria.
 # Positive numbers increase the bacteria count and negative numbers decrease the bacteria count.

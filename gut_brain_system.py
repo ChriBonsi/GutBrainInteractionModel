@@ -9,10 +9,10 @@ from repast4py import context as ctx
 from repast4py import space, schedule, logging, parameters
 from repast4py.space import DiscretePoint as dpt
 
-from utilities.gridNghFinder import GridNghFinder
+from utilities.graphic.gridNghFinder import GridNghFinder
+from utilities.graphic.gui import GUI
 from utilities.gutBrainInterface import GutBrainInterface
 from utilities.log import Log
-from utilities.gui import GUI
 
 from environments import brain_environment, gut_environment
 
