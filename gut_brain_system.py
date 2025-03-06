@@ -21,6 +21,8 @@ class Model:
     # Initialize the model
     def __init__(self, comm: MPI.Intracomm, params: Dict):
         self.params = params #TODO remove this variable adding the missing parameters (ex. existing_meals and cyclic_menu)
+        self.clock = pygame.time.Clock()  # Add a clock object
+        self.FPS = 12  # Set max FPS limit
         self.comm = comm
         self.rank = comm.Get_rank()
         # Create shared contexts for the brain and the gut
@@ -158,6 +160,8 @@ class Model:
         # Updates the Pygame GUI based on the current state of the Repast simulation
         self.screen.update(gut_context=self.gut_context, brain_context=self.brain_context)
         pygame.display.flip()
+
+        self.clock.tick(self.FPS)
 
         # Brain steps
 
