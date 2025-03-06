@@ -431,3 +431,4 @@ $RECYCLE.BIN/
 
 # Project specific
 output/
+.vscode/settings.json

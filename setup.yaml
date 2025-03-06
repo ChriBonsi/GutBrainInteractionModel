@@ -10,18 +10,21 @@ microbiota_good_bacteria_class: 30000
 microbiota_pathogenic_bacteria_class: 10000
 microbiota_diversity_threshold: 10000
 
-# To start the dysbyosis
+# To start the dysbiosis
+# External inputs have a different effect on the microbiota depending on the type of input.
+# The first number affects the good bacteria and the second number the pathogenic bacteria.
+# Positive numbers increase the bacteria count and negative numbers decrease the bacteria count.
 external_input.count: 10
-external_input: { diet: "diet",
-                  antibiotics: "antibiotics",
-                  stress: "stress" }
+external_input: { unhealthy_diet: [ -3,3 ],
+                  healthy_diet: [ 3, -2 ],
+                  antibiotics: [ -5,2 ],
+                  stress: [ -3,3 ] }
 
 # The treatment to use
 treatment: True
 treatment_input.count: 10
 
-treatment_input: { diet: "diet",
-                   probiotics: "probiotics" }
+treatment_input: { probiotics: [ 4,-4 ] } #, diet: "diet" }
 
 # The agents
 aep_enzyme.count: 50

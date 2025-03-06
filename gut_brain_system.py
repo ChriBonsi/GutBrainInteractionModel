@@ -1,338 +1,28 @@
-from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Dict, List
 
-import numba
 import numpy as np
 import pygame
 import repast4py
 import repast4py.random
 from mpi4py import MPI
-from numba import int32, int64
-from numba.experimental import jitclass
 from repast4py import context as ctx
 from repast4py import space, schedule, logging, parameters
 from repast4py.space import DiscretePoint as dpt
 
-from agents.brain_agents.cytokine import Cytokine
-from agents.brain_agents.microglia import Microglia
-from agents.brain_agents.neuron import Neuron
-from agents.gut_agents.aep import AEP
-from agents.gut_agents.external_input import ExternalInput
-from agents.gut_agents.normal_protein import Protein
-from agents.gut_agents.treatment import Treatment
-from agents.gut_brain_agents.cleaved_protein import CleavedProtein
-from agents.gut_brain_agents.oligomer import Oligomer
-from enviroments import brain_environment, gut_environment
-
-
-# Class to make the graphics of the simulation
-class GUI:
-    def __init__(self, width, height, gut_context, brain_context, grid_dimensions=(100, 100)):
-        self.background_color = (202, 187, 185)
-        self.border_color = (255, 255, 255)
-        self.width = width
-        self.height = height
-        self.screen = pygame.display.set_mode((self.width, self.height))
-        self.font = pygame.font.Font(None, 36)
-        self.running = True
-        self.gut_context = gut_context
-        self.brain_context = brain_context
-        self.grid_width, self.grid_height = grid_dimensions
-        self.paused = False
-        self.button_rects = []
-
-    # Function to update the screen after each tick
-    def update(self, gut_context, brain_context):
-        # Update contexts
-        self.gut_context, self.brain_context = gut_context, brain_context
-
-        # Fill background and draw border rectangle
-        self.screen.fill(self.background_color)
-        inner_rect = (50, 50, self.width - 100, self.height - 300)
-        pygame.draw.rect(self.screen, self.border_color, inner_rect)
-
-        # Draw section titles
-        text_y_position = inner_rect[1] - 30
-        self._draw_centered_text("Gut Environment", self.width // 4, text_y_position)
-        self._draw_centered_text("Brain Environment", 3 * self.width // 4, text_y_position)
-
-        # Draw separating line
-        pygame.draw.line(self.screen, (0, 0, 0), (self.width // 2, inner_rect[1]),
-                         (self.width // 2, inner_rect[1] + inner_rect[3]), 4)
-
-        # Draw buttons and legend
-        self.draw_buttons()
-        self.draw_legend()
-
-        # Define areas and draw agents
-        gut_area = (50, 50, self.width // 2 - 47, self.height - 300)
-        brain_area = (self.width // 2 + 3, 50, self.width // 2 - 50, self.height - 300)
-        self._draw_context_agents(self.gut_context, gut_area)
-        self._draw_context_agents(self.brain_context, brain_area)
-
-    def _draw_centered_text(self, text, x_center, y):
-        rendered_text = self.font.render(text, True, (0, 0, 0))
-        text_x_position = x_center - rendered_text.get_width() // 2
-        self.screen.blit(rendered_text, (text_x_position, y))
-
-    def _draw_context_agents(self, context, area):
-        self.draw_agents(context.agents(), area)
-
-    # Function to draw agents on the screen
-    def draw_agents(self, agents, area):
-        radius = 5
-
-        for agent in agents:
-            x_center = area[0] + (agent.pt.x / self.grid_width) * area[2]
-            y_center = area[1] + (agent.pt.y / self.grid_height) * area[3]
-
-            # Adjust x and y to keep the entire circle within the area
-            x = max(area[0] + radius, min(x_center, area[0] + area[2] - radius))
-            y = max(area[1] + radius, min(y_center, area[1] + area[3] - radius))
-
-            color = self.get_agent_color(agent)
-            pygame.draw.circle(self.screen, color, (int(x), int(y)), radius)
-
-    # Function to get the color of an agent based on its type and state
-    def get_agent_color(self, agent):
-        if agent.uid[1] == AEP.TYPE:
-            if agent.state == params["aep_state"]["active"]:
-                color = (147, 112, 219)
-            else:
-                color = (128, 0, 128)
-        elif agent.uid[1] == Protein.TYPE:
-            if agent.name == params["protein_name"]["tau"]:
-                color = (173, 216, 230)  # Light Blue
-            else:
-                color = (255, 255, 128)  # Light Yellow 
-        elif agent.uid[1] == CleavedProtein.TYPE:
-            if agent.name == params["protein_name"]["tau"]:
-                color = (113, 166, 210)  # Darker Blue               
-            else:
-                color = (225, 225, 100)  # Darker Yellow
-        elif agent.uid[1] == Oligomer.TYPE:
-            if agent.name == params["protein_name"]["tau"]:
-                color = (0, 0, 255)  # Blue
-            else:
-                color = (255, 255, 0)  # Yellow
-        elif agent.uid[1] == ExternalInput.TYPE:
-            color = (169, 169, 169)  # Dark Grey
-        elif agent.uid[1] == Treatment.TYPE:
-            color = (211, 211, 211)  # Light Grey
-        elif agent.uid[1] == Microglia.TYPE:
-            if agent.state == params["microglia_state"]["resting"]:
-                color = (144, 238, 144)  # Light Green 
-            else:
-                color = (0, 100, 0)  # Dark Green
-        elif agent.uid[1] == Neuron.TYPE:
-            if agent.state == params["neuron_state"]["healthy"]:
-                color = (255, 105, 180)  # Pink
-            elif agent.state == params["neuron_state"]["damaged"]:
-                color = (255, 69, 0)  # Orange-Red
-            else:
-                color = (0, 0, 0)  # Black
-        elif agent.uid[1] == Cytokine.TYPE:
-            if agent.state == params["cyto_state"]["pro_inflammatory"]:
-                color = (255, 0, 0)  # Red
-            else:
-                color = (0, 255, 255)  # Cyan
-        return color
-
-    # Function to draw the legend on the screen
-    def draw_legend(self):
-        # Define legend position and size
-        legend_x = 60
-        legend_y = self.height - 250
-        legend_radius = 6
-        legend_spacing = 35
-        text_offset_x = 15
-        row_spacing = 20
-
-        # Define legend title
-        legend_title_font = pygame.font.Font(None, 20)
-        legend_title_surface = legend_title_font.render("Legend:", True, (0, 0, 0))
-        title_width, title_height = legend_title_surface.get_size()
-
-        # Define legend fonts
-        legend_font = pygame.font.Font(None, 18)
-        legend_color = (0, 0, 0)  # Black
-
-        # Define legend items
-        legend_items = {(147, 112, 219): "Active AEP", (128, 0, 128): "Hyperactive AEP", (173, 216, 230): "Tau Protein",
-                        (255, 255, 128): "Alpha-syn Protein", (113, 166, 210): "Tau Cleaved",
-                        (225, 225, 100): "Alpha-syn Cleaved", (0, 0, 255): "Tau Oligomer",
-                        (255, 255, 0): "Alpha-syn Oligomer", (169, 169, 169): "External Input",
-                        (211, 211, 211): "Treatment", (144, 238, 144): "Resting Microglia",
-                        (0, 100, 0): "Active Microglia", (255, 105, 180): "Healthy Neuron",
-                        (255, 69, 0): "Damaged Neuron", (0, 0, 0): "Dead Neuron",
-                        (255, 0, 0): "Pro-inflammatory Cytokine", (0, 255, 255): "Anti-inflammatory Cytokine"}
-
-        # Calculate number of items per column
-        items_per_column = len(legend_items) // 2 + len(legend_items) % 2
-
-        # Calculate legend background size
-        legend_width = 400
-        legend_height = items_per_column * row_spacing + 70
-
-        # Calculate legend title position
-        title_x = legend_x + (legend_width - title_width) // 2
-        title_y = legend_y + 10
-
-        # Draw legend title
-        self.screen.blit(legend_title_surface, (title_x, title_y))
-
-        # Draw legend items
-        row = 0
-        for color, label in legend_items.items():
-            col = 0 if row < items_per_column else 1
-            circle_x = legend_x + col * (legend_width // 2) + legend_radius
-            circle_y = legend_y + 35 + (row % items_per_column) * row_spacing + legend_radius
-            pygame.draw.circle(self.screen, color, (circle_x, circle_y), legend_radius)
-            legend_text_surface = legend_font.render(label, True, legend_color)
-            text_width, text_height = legend_text_surface.get_size()
-            text_x = legend_x + col * (legend_width // 2) + 2 * legend_radius + text_offset_x
-            text_y = circle_y - text_height // 2
-            self.screen.blit(legend_text_surface, (text_x, text_y))
-            row += 1
-
-    # Function to draw the play and stop buttons on the screen
-    def draw_buttons(self):
-        button_font = pygame.font.Font(None, 30)
-        buttons = ["Play", "Stop"]
-        button_width = 120
-        button_height = 40
-        button_spacing = 10
-
-        total_width = (button_width * len(buttons)) + (button_spacing * (len(buttons) - 1))
-        start_x = (self.width - total_width) // 2
-
-        for i, button_text in enumerate(buttons):
-            button_x = start_x + i * (button_width + button_spacing)
-            button_rect = pygame.Rect(button_x, self.height - 150, button_width, button_height)
-            pygame.draw.rect(self.screen, (137, 106, 103), button_rect)
-            button_surface = button_font.render(button_text, True, (0, 0, 0))
-            # Center the text on the button
-            button_text_rect = button_surface.get_rect(center=button_rect.center)
-            self.screen.blit(button_surface, button_text_rect.topleft)
-
-            self.button_rects.append((button_rect, button_text))
-
-    # Function to handle mouse clicks on the buttons
-    def handle_button_click(self, mouse_pos):
-        for button_rect, button_text in self.button_rects:
-            if button_rect.collidepoint(mouse_pos):
-                self.on_button_click(button_text)
-
-    # Function to handle button clicks
-    def on_button_click(self, button_text):
-        if button_text == "Play":
-            self.paused = False
-        elif button_text == "Stop":
-            self.paused = True
-
-
-@dataclass
-class Log:
-    # Gut variables
-    aep_active: int = 0
-    aep_hyperactive: int = 0
-    alpha_protein_gut: int = 0
-    tau_protein_gut: int = 0
-    alpha_cleaved_gut: int = 0
-    tau_cleaved_gut: int = 0
-    alpha_oligomer_gut: int = 0
-    tau_oligomer_gut: int = 0
-    barrier_impermeability: int = 0
-    microbiota_good_bacteria_class: int = 0
-    microbiota_pathogenic_bacteria_class: int = 0
-    # Brain variables
-    resting_microglia: int = 0
-    active_microglia: int = 0
-    healthy_neuron: int = 0
-    damaged_neuron: int = 0
-    dead_neuron: int = 0
-    cleaved_alpha_syn_brain: int = 0
-    alpha_syn_oligomer_brain: int = 0
-    cleaved_tau_brain: int = 0
-    tau_oligomer_brain: int = 0
-    cytokine_pro_inflammatory: int = 0
-    cytokine_non_inflammatory: int = 0
-
-
-@numba.jit((int64[:], int64[:]), nopython=True)
-def is_equal(a1, a2):
-    return a1[0] == a2[0] and a1[1] == a2[1]
-
-
-spec = [('mo', int32[:]), ('no', int32[:]), ('xmin', int32), ('ymin', int32), ('ymax', int32), ('xmax', int32)]
-
-
-@jitclass(spec)
-class GridNghFinder:
-
-    def __init__(self, xmin, ymin, xmax, ymax):
-        self.mo = np.array([-1, 0, 1, -1, 0, 1, -1, 0, 1], dtype=np.int32)
-        self.no = np.array([1, 1, 1, 0, 0, 0, -1, -1, -1], dtype=np.int32)
-        self.xmin = xmin
-        self.ymin = ymin
-        self.xmax = xmax
-        self.ymax = ymax
-
-    def find(self, x, y):
-        xs = self.mo + x
-        ys = self.no + y
-
-        xd = (xs >= self.xmin) & (xs <= self.xmax)
-        xs = xs[xd]
-        ys = ys[xd]
-
-        yd = (ys >= self.ymin) & (ys <= self.ymax)
-        xs = xs[yd]
-        ys = ys[yd]
-
-        return np.stack((xs, ys, np.zeros(len(ys), dtype=np.int32)), axis=-1)
-
-
-# Manages the communication between the gut and brain contexts
-class GutBrainInterface:
-    def __init__(self, gut_context, brain_context):
-        self.gut_context = gut_context
-        self.brain_context = brain_context
-        self.gut_grid = self.gut_context.get_projection("gut_grid")
-        self.brain_grid = self.brain_context.get_projection("brain_grid")
-        repast4py.random.seed = params['seed']
-        self.rng = repast4py.random.default_rng
-
-    # Unidirectional channel from gut to brain
-    def transfer_from_gut_to_brain(self, agent):
-        self.brain_context.add(agent)
-        pt = self.brain_grid.get_random_local_pt(self.rng)
-        self.brain_grid.move(agent, pt)
-        agent.context = 'brain'
-        agent.toRemove = False
-        agent.toMove = False
-        self.gut_context.remove(agent)
-
-
-agent_cache = {}
-
-
-# Function to restore the agents in the brain context from saved data
-def restore_agent_brain(agent_data: Tuple):
-
-    return brain_environment.restore_agent(agent_data, agent_cache, True)
-
-
-# Function to restore the agents in the gut context from saved data
-def restore_agent_gut(agent_data: Tuple):
-    return gut_environment.restore_agent(agent_data, agent_cache, True)
+from environments import brain_environment, gut_environment
+from utilities.graphic.gridNghFinder import GridNghFinder
+from utilities.graphic.gui import GUI
+from utilities.gutBrainInterface import GutBrainInterface
+from utilities.log import Log
 
 
 class Model:
 
     # Initialize the model
     def __init__(self, comm: MPI.Intracomm, params: Dict):
-        self.params = params
+        self.params = params  # TODO remove this variable adding the missing parameters (ex. existing_meals and cyclic_menu)
+        self.clock = pygame.time.Clock()  # Add a clock object
+        self.FPS = 12  # Set max FPS limit
         self.comm = comm
         self.rank = comm.Get_rank()
         # Create shared contexts for the brain and the gut
@@ -344,7 +34,7 @@ class Model:
         self.brain_grid = self.init_grid('brain_grid', box, self.brain_context)
 
         self.ngh_finder = GridNghFinder(0, 0, box.xextent, box.yextent)
-        self.gutBrainInterface = GutBrainInterface(self.gut_context, self.brain_context)
+        self.gutBrainInterface = GutBrainInterface(self.gut_context, self.brain_context, self.params["seed"])
         # Initialize the schedule runner
         self.runner = schedule.init_schedule_runner(comm)
         self.init_schedule(params)
@@ -362,26 +52,32 @@ class Model:
         self.pro_cytokine = 0
         self.anti_cytokine = 0
         self.dead_neuron = self.calculate_partitioned_count(params['neuron_dead.count'])
+        self.agent_cache = {}
         # Initialize the agents
-        agent_types_gut = [('aep_enzyme.count', AEP, None),
-                           ('tau_proteins.count', Protein, params["protein_name"]["tau"]),
-                           ('alpha_syn_proteins.count', Protein, params["protein_name"]["alpha_syn"]),
-                           ('external_input.count', ExternalInput, None), ('treatment_input.count', Treatment, None),
-                           ('alpha_syn_oligomers_gut.count', Oligomer, params["protein_name"]["alpha_syn"]),
-                           ('tau_oligomers_gut.count', Oligomer, params["protein_name"]["tau"]), ]
-        agent_types_brain = [('neuron_healthy.count', Neuron, 'healthy'), ('neuron_damaged.count', Neuron, 'damaged'),
-                             ('neuron_dead.count', Neuron, 'dead'), ('resting_microglia.count', Microglia, 'resting'),
-                             ('active_microglia.count', Microglia, 'active'),
-                             ('alpha_syn_cleaved_brain.count', CleavedProtein, params["protein_name"]["alpha_syn"]),
-                             ('tau_cleaved_brain.count', CleavedProtein, params["protein_name"]["tau"]),
-                             ('alpha_syn_oligomer_brain.count', Oligomer, params["protein_name"]["alpha_syn"]),
-                             ('tau_oligomer_brain.count', Oligomer, params["protein_name"]["tau"]),
-                             ('cytokine.count', Cytokine, None)]
+        agent_types_gut = [('aep_enzyme.count', "AEP", None),
+                           ('tau_proteins.count', "Protein", params["protein_name"]["tau"]),
+                           ('alpha_syn_proteins.count', "Protein", params["protein_name"]["alpha_syn"]),
+                           ('external_input.count', "ExternalInput", None),
+                           ('treatment_input.count', "Treatment", None),
+                           ('alpha_syn_oligomers_gut.count', "Oligomer", params["protein_name"]["alpha_syn"]),
+                           ('tau_oligomers_gut.count', "Oligomer", params["protein_name"]["tau"]), ]
+        agent_types_brain = [('neuron_healthy.count', "Neuron", 'healthy'),
+                             ('neuron_damaged.count', "Neuron", 'damaged'),
+                             ('neuron_dead.count', "Neuron", 'dead'),
+                             ('resting_microglia.count', "Microglia", 'resting'),
+                             ('active_microglia.count', "Microglia", 'active'),
+                             ('alpha_syn_cleaved_brain.count', "CleavedProtein", params["protein_name"]["alpha_syn"]),
+                             ('tau_cleaved_brain.count', "CleavedProtein", params["protein_name"]["tau"]),
+                             ('alpha_syn_oligomer_brain.count', "Oligomer", params["protein_name"]["alpha_syn"]),
+                             ('tau_oligomer_brain.count', "Oligomer", params["protein_name"]["tau"]),
+                             ('cytokine.count', "Cytokine", None)]
         self.distribute_all_agents(agent_types_gut, self.gut_context, self.gut_grid, 'gut')
         self.distribute_all_agents(agent_types_brain, self.brain_context, self.brain_grid, 'brain')
+
         # Synchronize the contexts
-        self.gut_context.synchronize(restore_agent_gut)
-        self.brain_context.synchronize(restore_agent_brain)
+        self.gut_context.synchronize(gut_environment.restore_agent)
+        self.brain_context.synchronize(brain_environment.restore_agent)
+
         # Initialize Pygame and gui object
         pygame.init()
         self.screen = GUI(width=1600, height=800, gut_context=self.gut_context, brain_context=self.brain_context,
@@ -409,8 +105,10 @@ class Model:
 
     # Function to initialize the microbiota parameters
     def init_microbiota_params(self, params):
-        self.microbiota_good_bacteria_class = params["microbiota_good_bacteria_class"]
-        self.microbiota_pathogenic_bacteria_class = params["microbiota_pathogenic_bacteria_class"]
+        # Total count of the good and pathogenic bacteria in the microbiota
+        self.good_bact_count = params["microbiota_good_bacteria_class"]
+        self.pathogenic_bact_count = params["microbiota_pathogenic_bacteria_class"]
+
         self.microbiota_diversity_threshold = params["microbiota_diversity_threshold"]
         self.barrier_impermeability = params["barrier_impermeability"]
         self.barrier_permeability_threshold_stop = params["barrier_permeability_threshold_stop"]
@@ -419,7 +117,7 @@ class Model:
     # Function to distribute all agents through the different ranks
     def distribute_all_agents(self, agent_types, context, grid, region):
         for agent_type in agent_types:
-            total_count = params[agent_type[0]]
+            total_count = self.params[agent_type[0]]
             pp_count = self.calculate_partitioned_count(total_count)
             self.create_agents(agent_type[1], pp_count, agent_type[2], context, grid, region)
 
@@ -427,18 +125,8 @@ class Model:
     def create_agents(self, agent_class, pp_count, state_key, context, grid, region):
         for j in range(pp_count):
             pt = grid.get_random_local_pt(self.rng)
-            if agent_class in [Neuron, Microglia]:
-                agent = agent_class(self.added_agents_id + j, self.rank,
-                                    params[f"{agent_class.__name__.lower()}_state"][state_key], pt, region)
-            elif agent_class in [CleavedProtein, Oligomer, Protein]:
-                agent = agent_class(self.added_agents_id + j, self.rank, params["protein_name"][state_key], pt, region)
-            else:
-                # For agents without special state keys
-                # agent = agent_class(self.added_agents_id + j, self.rank, pt, region)
-                try:
-                    agent = agent_class(self.added_agents_id + j, self.rank, pt, region, self)
-                except(TypeError):
-                    agent = agent_class(self.added_agents_id + j, self.rank, pt, region)
+
+            agent = _create_new_agent(agent_class, self.added_agents_id + j, self.rank, state_key, pt, region, self)
 
             context.add(agent)
             self.move(agent, pt, agent.context)
@@ -476,14 +164,16 @@ class Model:
         self.screen.update(gut_context=self.gut_context, brain_context=self.brain_context)
         pygame.display.flip()
 
+        self.clock.tick(self.FPS)
+
         # Brain steps
 
     def brain_step(self):
-        self.brain_context.synchronize(restore_agent_brain)
+        self.brain_context.synchronize(brain_environment.restore_agent)
 
         def gather_agents_to_remove():
             return [agent for agent in self.brain_context.agents() if
-                    isinstance(agent, (Oligomer, CleavedProtein, Neuron)) and agent.toRemove]
+                    agent.TYPE in {3, 2, 7} and agent.toRemove]  # if agent is Oligomer, CleavedProtein or Neuron
 
         # Remove agents marked for removal
         remove_agents = gather_agents_to_remove()
@@ -493,11 +183,11 @@ class Model:
                 self.remove_agent(agent)
                 removed_ids.add(agent.uid)
 
-        self.brain_context.synchronize(restore_agent_brain)
+        self.brain_context.synchronize(brain_environment.restore_agent)
 
         # Let each agent perform its step
         for agent in self.brain_context.agents():
-            agent.step(model)
+            agent.step(self)
 
         # Collect data and perform operations based on agent states
         oligomer_to_remove = []
@@ -506,15 +196,20 @@ class Model:
         all_true_cleaved_aggregates = []
 
         for agent in self.brain_context.agents():
-            if isinstance(agent, Oligomer) and agent.toRemove:
-                oligomer_to_remove.append(agent)
-            elif isinstance(agent, Microglia) and agent.state == params["microglia_state"]["active"]:
-                active_microglia += 1
-            elif isinstance(agent, Neuron) and agent.state == params["neuron_state"]["damaged"]:
-                damaged_neuron += 1
-            elif isinstance(agent, CleavedProtein) and agent.toAggregate:
-                all_true_cleaved_aggregates.append(agent)
-                agent.toRemove = True
+            match agent.TYPE:
+                case 2:  # cleaved protein
+                    if agent.toAggregate:
+                        all_true_cleaved_aggregates.append(agent)
+                        agent.toRemove = True
+                case 3:  # Oligomer
+                    if agent.toRemove:
+                        oligomer_to_remove.append(agent)
+                case 6:  # microglia
+                    if agent.state == "active":
+                        active_microglia += 1
+                case 7:  # neuron
+                    if agent.state == "damaged":
+                        damaged_neuron += 1
 
         for _ in range(active_microglia):
             self.add_cytokine()
@@ -525,12 +220,12 @@ class Model:
                 self.remove_agent(oligomer)
                 removed_ids.add(oligomer.uid)
 
-        self.brain_context.synchronize(restore_agent_brain)
+        self.brain_context.synchronize(brain_environment.restore_agent)
 
         for agent in all_true_cleaved_aggregates:
             if agent.uid in removed_ids:
                 continue
-            if agent.toAggregate and agent.is_valid(model):
+            if agent.toAggregate and agent.is_valid(self):
                 cont = 0
                 _, agent_nghs_cleaved, _ = agent.check_and_get_nghs(self)
                 for x in agent_nghs_cleaved:
@@ -548,7 +243,7 @@ class Model:
                 self.remove_agent(agent)
                 removed_ids.add(agent.uid)
 
-        self.brain_context.synchronize(restore_agent_brain)
+        self.brain_context.synchronize(brain_environment.restore_agent)
 
         # Remove agents marked for removal after all processing
         remove_agents = gather_agents_to_remove()
@@ -570,11 +265,12 @@ class Model:
     def brain_add_cleaved_protein(
             self):
         self.added_agents_id += 1
-        possible_types = [params["protein_name"]["alpha_syn"], params["protein_name"]["tau"]]
+        possible_types: List[str] = list(self.params.get("protein_name").values())
         random_index = np.random.randint(0, len(possible_types))
         cleaved_protein_name = possible_types[random_index]
         pt = self.brain_grid.get_random_local_pt(self.rng)
-        cleaved_protein = CleavedProtein(self.added_agents_id, self.rank, cleaved_protein_name, pt, 'brain')
+        cleaved_protein = brain_environment.create_new_cleavedProtein(self.added_agents_id, self.rank,
+                                                                      cleaved_protein_name, pt)
         self.brain_context.add(cleaved_protein)
         self.move(cleaved_protein, cleaved_protein.pt, cleaved_protein.context)
 
@@ -582,7 +278,8 @@ class Model:
     def gut_add_cleaved_protein(self, cleaved_protein_name):
         self.added_agents_id += 1
         pt = self.gut_grid.get_random_local_pt(self.rng)
-        cleaved_protein = CleavedProtein(self.added_agents_id, self.rank, cleaved_protein_name, pt, 'gut')
+        cleaved_protein = gut_environment.create_new_cleavedProtein(self.added_agents_id, self.rank,
+                                                                    cleaved_protein_name, pt)
         self.gut_context.add(cleaved_protein)
         self.move(cleaved_protein, cleaved_protein.pt, 'gut')
 
@@ -591,12 +288,12 @@ class Model:
         self.added_agents_id += 1
         if context == 'brain':
             pt = self.brain_grid.get_random_local_pt(self.rng)
-            oligomer_protein = Oligomer(self.added_agents_id, self.rank, oligomer_name, pt, 'brain')
+            oligomer_protein = brain_environment.create_new_Oligomer(self.added_agents_id, self.rank, oligomer_name, pt)
             self.brain_context.add(oligomer_protein)
             self.move(oligomer_protein, oligomer_protein.pt, 'brain')
         else:
             pt = self.gut_grid.get_random_local_pt(self.rng)
-            oligomer_protein = Oligomer(self.added_agents_id, self.rank, oligomer_name, pt, 'gut')
+            oligomer_protein = gut_environment.create_new_Oligomer(self.added_agents_id, self.rank, oligomer_name, pt)
             self.gut_context.add(oligomer_protein)
             self.move(oligomer_protein, oligomer_protein.pt, 'gut')
 
@@ -613,7 +310,7 @@ class Model:
     def add_cytokine(self):
         self.added_agents_id += 1
         pt = self.brain_grid.get_random_local_pt(self.rng)
-        cytokine = Cytokine(self.added_agents_id, self.rank, pt, 'brain', self)
+        cytokine = brain_environment.create_new_cytokine(self.added_agents_id, self.rank, pt, self)
         self.brain_context.add(cytokine)
         self.move(cytokine, cytokine.pt, 'brain')
 
@@ -621,19 +318,19 @@ class Model:
     # Function to move the cleaved protein agents 
     def move_cleaved_protein_step(self):
         for agent in self.gut_context.agents():
-            if type(agent) == CleavedProtein:
+            if agent.TYPE == 2:  # CleavedProtein
                 if not agent.alreadyAggregate:
                     pt = self.gut_grid.get_random_local_pt(self.rng)
                     self.move(agent, pt, agent.context)
         for agent in self.brain_context.agents():
-            if type(agent) == CleavedProtein:
+            if agent.TYPE == 2:  # CleavedProtein
                 if not agent.alreadyAggregate:
                     pt = self.brain_grid.get_random_local_pt(self.rng)
                     self.move(agent, pt, agent.context)
 
     # Function to check if the microbiota is dysbiotic and adjust the barrier impermeability 
     def microbiota_dysbiosis_step(self):
-        if self.microbiota_good_bacteria_class - self.microbiota_pathogenic_bacteria_class <= self.microbiota_diversity_threshold:
+        if self.good_bact_count - self.pathogenic_bact_count <= self.microbiota_diversity_threshold:
             value_decreased = int((params["barrier_impermeability"] * np.random.randint(0, 6)) / 100)
             if self.barrier_impermeability - value_decreased <= 0:
                 self.barrier_impermeability = 0
@@ -642,23 +339,23 @@ class Model:
             number_of_aep_to_hyperactivate = value_decreased
             cont = 0
             for agent in self.gut_context.agents(agent_type=0):
-                if agent.state == params["aep_state"]["active"] and cont < number_of_aep_to_hyperactivate:
-                    agent.state = params["aep_state"]["hyperactive"]
+                if agent.state == "active" and cont < number_of_aep_to_hyperactivate:
+                    agent.state = "hyperactive"
                     cont += 1
                 elif cont == number_of_aep_to_hyperactivate:
                     break
         else:
-            if self.barrier_impermeability < params["barrier_impermeability"]:
-                value_increased = int((params["barrier_impermeability"] * np.random.randint(0, 4)) / 100)
-                if (self.barrier_impermeability + value_increased) <= params["barrier_impermeability"]:
+            if self.barrier_impermeability < self.params["barrier_impermeability"]:
+                value_increased = int((self.params["barrier_impermeability"] * np.random.randint(0, 4)) / 100)
+                if (self.barrier_impermeability + value_increased) <= self.params["barrier_impermeability"]:
                     self.barrier_impermeability = self.barrier_impermeability + value_increased
 
     def gut_step(self):
-        self.gut_context.synchronize(restore_agent_gut)
+        self.gut_context.synchronize(gut_environment.restore_agent)
 
         def gather_agents_to_remove():
             return [agent for agent in self.gut_context.agents() if
-                    isinstance(agent, (Oligomer, CleavedProtein, Protein)) and agent.toRemove]
+                    agent.TYPE in {3, 2, 1} and agent.toRemove]  # if agent is Oligomer, CleavedProtein or Protein
 
         remove_agents = gather_agents_to_remove()
         removed_ids = set()
@@ -667,7 +364,7 @@ class Model:
                 self.remove_agent(agent)
                 removed_ids.add(agent.uid)
 
-        self.gut_context.synchronize(restore_agent_gut)
+        self.gut_context.synchronize(gut_environment.restore_agent)
 
         for agent in self.gut_context.agents():
             agent.step(self)
@@ -677,15 +374,19 @@ class Model:
         oligomers_to_move = []
 
         for agent in self.gut_context.agents():
-            if type(agent) == Protein and agent.toCleave == True:
-                protein_to_remove.append(agent)
-                agent.toRemove = True
-            elif type(agent) == CleavedProtein and agent.toAggregate == True:
-                all_true_cleaved_aggregates.append(agent)
-                agent.toRemove = True
-            elif type(agent) == Oligomer and agent.toMove == True:
-                oligomers_to_move.append(agent)
-                agent.toRemove = True
+            match agent.TYPE:
+                case 1:  # protein
+                    if agent.toCleave:
+                        protein_to_remove.append(agent)
+                        agent.toRemove = True
+                case 2:  # CleavedProtein
+                    if agent.toAggregate:
+                        all_true_cleaved_aggregates.append(agent)
+                        agent.toRemove = True
+                case 3:  # Oligomer
+                    if agent.toMove:
+                        oligomers_to_move.append(agent)
+                        agent.toRemove = True
 
         for agent in oligomers_to_move:
             self.gutBrainInterface.transfer_from_gut_to_brain(agent)
@@ -699,14 +400,14 @@ class Model:
             self.gut_add_cleaved_protein(protein_name)
             self.gut_add_cleaved_protein(protein_name)
 
-        self.gut_context.synchronize(restore_agent_gut)
+        self.gut_context.synchronize(gut_environment.restore_agent)
 
         for agent in all_true_cleaved_aggregates:
             if agent.uid in removed_ids:
                 continue
-            if agent.toAggregate and agent.is_valid(model):
+            if agent.toAggregate and agent.is_valid(self):
                 cont = 0
-                _, agent_nghs_cleaved, _ = agent.check_and_get_nghs(model)
+                _, agent_nghs_cleaved, _ = agent.check_and_get_nghs(self)
                 for x in agent_nghs_cleaved:
                     if x.alreadyAggregate and x.uid != agent.uid:
                         if cont < 3:
@@ -722,7 +423,7 @@ class Model:
                 self.remove_agent(agent)
                 removed_ids.add(agent.uid)
 
-        self.gut_context.synchronize(restore_agent_gut)
+        self.gut_context.synchronize(gut_environment.restore_agent)
 
         remove_agents = gather_agents_to_remove()
         for agent in remove_agents:
@@ -742,50 +443,52 @@ class Model:
                   "alpha_cleaved_brain": 0, "tau_cleaved_brain": 0, "alpha_oligomer_brain": 0, "tau_oligomer_brain": 0}
 
         for agent in self.brain_context.agents():
-            if isinstance(agent, Oligomer):
-                if agent.name == params["protein_name"]["alpha_syn"]:
-                    counts["alpha_oligomer_brain"] += 1
-                else:
-                    counts["tau_oligomer_brain"] += 1
-            elif isinstance(agent, CleavedProtein):
-                if agent.name == params["protein_name"]["alpha_syn"]:
-                    counts["alpha_cleaved_brain"] += 1
-                else:
-                    counts["tau_cleaved_brain"] += 1
-            elif isinstance(agent, Neuron):
-                if agent.state == params["neuron_state"]["healthy"]:
-                    counts["neuron_healthy"] += 1
-                elif agent.state == params["neuron_state"]["damaged"]:
-                    counts["neuron_damaged"] += 1
-            elif isinstance(agent, Microglia):
-                if agent.state == params["microglia_state"]["active"]:
-                    counts["microglia_active"] += 1
-                else:
-                    counts["microglia_resting"] += 1
+            match agent.TYPE:
+                case 3:  # Oligomer
+                    if agent.name == "alpha_syn":
+                        counts["alpha_oligomer_brain"] += 1
+                    else:
+                        counts["tau_oligomer_brain"] += 1
+                case 2:  # CleavedProtein
+                    if agent.name == "alpha_syn":
+                        counts["alpha_cleaved_brain"] += 1
+                    else:
+                        counts["tau_cleaved_brain"] += 1
+                case 7:  # Neuron
+                    if agent.state == "healthy":
+                        counts["neuron_healthy"] += 1
+                    elif agent.state == "damaged":
+                        counts["neuron_damaged"] += 1
+                case 6:  # Microglia
+                    if agent.state == "active":
+                        counts["microglia_active"] += 1
+                    else:
+                        counts["microglia_resting"] += 1
 
         for agent in self.gut_context.agents():
-            if type(agent) == Oligomer:
-                if agent.name == params["protein_name"]["alpha_syn"]:
-                    counts["alpha_oligomer_gut"] += 1
-                else:
-                    counts["tau_oligomer_gut"] += 1
-            if type(agent) == CleavedProtein:
-                if agent.name == params["protein_name"]["alpha_syn"]:
-                    counts["alpha_cleaved_gut"] += 1
-                else:
-                    counts["tau_cleaved_gut"] += 1
-            elif type(agent) == Protein:
-                if agent.name == params["protein_name"]["alpha_syn"]:
-                    counts["alpha_protein_gut"] += 1
-                else:
-                    counts["tau_protein_gut"] += 1
-            elif type(agent) == AEP:
-                if agent.state == params["aep_state"]["active"]:
-                    counts["aep_active"] += 1
-                else:
-                    counts["aep_hyperactive"] += 1
+            match agent.type:
+                case 3:  # Oligomer
+                    if agent.name == "alpha_syn":
+                        counts["alpha_oligomer_gut"] += 1
+                    else:
+                        counts["tau_oligomer_gut"] += 1
+                case 2:  # CleavedProtein
+                    if agent.name == "alpha_syn":
+                        counts["alpha_cleaved_gut"] += 1
+                    else:
+                        counts["tau_cleaved_gut"] += 1
+                case 7:  # Protein
+                    if agent.name == "alpha_syn":
+                        counts["alpha_protein_gut"] += 1
+                    else:
+                        counts["tau_protein_gut"] += 1
+                case 0:  # AEP
+                    if agent.state == "active":
+                        counts["aep_active"] += 1
+                    else:
+                        counts["aep_hyperactive"] += 1
 
-                    # brain
+        # brain
         self.counts.healthy_neuron = counts["neuron_healthy"]
         self.counts.damaged_neuron = counts["neuron_damaged"]
         self.counts.dead_neuron = self.dead_neuron
@@ -807,8 +510,8 @@ class Model:
         self.counts.tau_cleaved_gut = counts["tau_cleaved_gut"]
         self.counts.alpha_oligomer_gut = counts["alpha_oligomer_gut"]
         self.counts.tau_oligomer_gut = counts["tau_oligomer_gut"]
-        self.counts.microbiota_good_bacteria_class = self.microbiota_good_bacteria_class
-        self.counts.microbiota_pathogenic_bacteria_class = self.microbiota_pathogenic_bacteria_class
+        self.counts.microbiota_good_bacteria_class = self.good_bact_count
+        self.counts.microbiota_pathogenic_bacteria_class = self.pathogenic_bact_count
         self.counts.barrier_impermeability = self.barrier_impermeability
 
         self.data_set.log(tick)
@@ -823,7 +526,42 @@ class Model:
         self.runner.execute()
 
 
-# Function to run the simulation
+def _create_new_agent(agent_class: str, local_id: int, rank: int, nameOrState: str, pt, region: str, model: Model):
+    """Stopgap function created as universal constructor call for all defined agents."""
+    if region == "brain":
+        match agent_class:
+            case "Cytokine":
+                return brain_environment.create_new_cytokine(local_id, rank, nameOrState, pt)
+            case "Microglia":
+                return brain_environment.create_new_microglia(local_id, rank, nameOrState, pt)
+            case "Neuron":
+                return brain_environment.create_new_neuron(local_id, rank, nameOrState, pt)
+            case "CleavedProtein":
+                return brain_environment.create_new_cleavedProtein(local_id, rank, nameOrState, pt)
+            case "Oligomer":
+                return brain_environment.create_new_Oligomer(local_id, rank, nameOrState, pt)
+            case _:
+                raise ValueError("Not supported agent")
+    elif region == "gut":
+        match agent_class:
+            case "AEP":
+                return gut_environment.create_new_aep(local_id, rank, pt, model)
+            case "ExternalInput":
+                return gut_environment.create_new_externalInput(local_id, rank, pt, model)
+            case "Treatment":
+                return gut_environment.create_new_treatment(local_id, rank, pt, model)
+            case "Protein":
+                return gut_environment.create_new_protein(local_id, rank, nameOrState, pt, model)
+            case "CleavedProtein":
+                return gut_environment.create_new_cleavedProtein(local_id, rank, nameOrState, pt)
+            case "Oligomer":
+                return gut_environment.create_new_Oligomer(local_id, rank, nameOrState, pt)
+            case _:
+                raise ValueError("Not supported agent")
+    else:
+        raise ValueError("not supported region")
+
+
 def run(params: Dict):
     global model
     model = Model(MPI.COMM_WORLD, params)
