@@ -1,5 +1,6 @@
 import repast4py
 
+
 # Manages the communication between the gut and brain contexts
 class GutBrainInterface:
     def __init__(self, gut_context, brain_context, seed: int):

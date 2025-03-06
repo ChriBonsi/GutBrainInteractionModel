@@ -1,8 +1,9 @@
 import numpy as np
-from numba.experimental import jitclass
 from numba import int32
+from numba.experimental import jitclass
 
 spec = [('mo', int32[:]), ('no', int32[:]), ('xmin', int32), ('ymin', int32), ('ymax', int32), ('xmax', int32)]
+
 
 @jitclass(spec)
 class GridNghFinder:

@@ -2,14 +2,13 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numba
-import numpy as np
 from numba import int32, int64
 from repast4py.space import DiscretePoint as dpt
 
 from agents.gut_agents.aep import AEP
 from agents.gut_agents.external_input import ExternalInput
-from agents.gut_agents.treatment import Treatment
 from agents.gut_agents.normal_protein import Protein
+from agents.gut_agents.treatment import Treatment
 from agents.gut_brain_agents.cleaved_protein import CleavedProtein
 from agents.gut_brain_agents.oligomer import Oligomer
 
@@ -37,25 +36,31 @@ def is_equal(a1, a2):
 spec = [('mo', int32[:]), ('no', int32[:]), ('xmin', int32), ('ymin', int32), ('ymax', int32), ('xmax', int32)]
 
 
-#gut agents
+# gut agents
 def create_new_aep(local_id: int, rank: int, pt, model) -> AEP:
     return AEP(local_id, rank, pt, "gut", model)
+
 
 def create_new_externalInput(local_id: int, rank: int, pt, model) -> ExternalInput:
     return ExternalInput(local_id, rank, pt, "gut", model)
 
+
 def create_new_treatment(local_id: int, rank: int, pt, model) -> Treatment:
     return Treatment(local_id, rank, pt, "gut", model)
+
 
 def create_new_protein(local_id: int, rank: int, protein_name, pt, model) -> Protein:
     return Protein(local_id, rank, protein_name, pt, "gut")
 
-#gut-brain agents
+
+# gut-brain agents
 def create_new_cleavedProtein(local_id: int, rank: int, cleaved_protein_name, pt) -> CleavedProtein:
     return CleavedProtein(local_id, rank, cleaved_protein_name, pt, "gut")
 
+
 def create_new_Oligomer(local_id: int, rank: int, oligomer_name, pt) -> Oligomer:
     return Oligomer(local_id, rank, oligomer_name, pt, "gut")
+
 
 # def restore_agent(agent_data: Tuple):
 def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = False):

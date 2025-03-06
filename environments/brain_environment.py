@@ -35,28 +35,32 @@ def is_equal(a1, a2):
 spec = [('mo', int32[:]), ('no', int32[:]), ('xmin', int32), ('ymin', int32), ('ymax', int32), ('xmax', int32)]
 
 
-#brain agents
+# brain agents
 def create_new_cytokine(local_id: int, rank: int, pt, model) -> Cytokine:
     return Cytokine(local_id, rank, pt, "brain", model)
+
 
 def create_new_microglia(local_id: int, rank: int, initial_state, pt) -> Microglia:
     return Microglia(local_id, rank, initial_state, pt, "brain")
 
+
 def create_new_neuron(local_id: int, rank: int, initial_state, pt) -> Neuron:
     return Neuron(local_id, rank, initial_state, pt, "brain")
 
-#gut-brain agents
+
+# gut-brain agents
 def create_new_cleavedProtein(local_id: int, rank: int, cleaved_protein_name, pt) -> CleavedProtein:
     return CleavedProtein(local_id, rank, cleaved_protein_name, pt, "brain")
+
 
 def create_new_Oligomer(local_id: int, rank: int, oligomer_name, pt) -> Oligomer:
     return Oligomer(local_id, rank, oligomer_name, pt, "brain")
 
+
 # def restore_agent(agent_data: Tuple):
 def restore_agent(agent_data: Tuple, agent_cache: dict, usingContext: bool = False):
-
     if agent_data == None:
-        return #stopgap resolution for None agents
+        return  # stopgap resolution for None agents
 
     uid = agent_data[0]
     pt_array = agent_data[2]

@@ -9,18 +9,18 @@ from repast4py import context as ctx
 from repast4py import space, schedule, logging, parameters
 from repast4py.space import DiscretePoint as dpt
 
+from environments import brain_environment, gut_environment
 from utilities.graphic.gridNghFinder import GridNghFinder
 from utilities.graphic.gui import GUI
 from utilities.gutBrainInterface import GutBrainInterface
 from utilities.log import Log
 
-from environments import brain_environment, gut_environment
 
 class Model:
 
     # Initialize the model
     def __init__(self, comm: MPI.Intracomm, params: Dict):
-        self.params = params #TODO remove this variable adding the missing parameters (ex. existing_meals and cyclic_menu)
+        self.params = params  # TODO remove this variable adding the missing parameters (ex. existing_meals and cyclic_menu)
         self.clock = pygame.time.Clock()  # Add a clock object
         self.FPS = 12  # Set max FPS limit
         self.comm = comm
@@ -57,11 +57,14 @@ class Model:
         agent_types_gut = [('aep_enzyme.count', "AEP", None),
                            ('tau_proteins.count', "Protein", params["protein_name"]["tau"]),
                            ('alpha_syn_proteins.count', "Protein", params["protein_name"]["alpha_syn"]),
-                           ('external_input.count', "ExternalInput", None), ('treatment_input.count', "Treatment", None),
+                           ('external_input.count', "ExternalInput", None),
+                           ('treatment_input.count', "Treatment", None),
                            ('alpha_syn_oligomers_gut.count', "Oligomer", params["protein_name"]["alpha_syn"]),
                            ('tau_oligomers_gut.count', "Oligomer", params["protein_name"]["tau"]), ]
-        agent_types_brain = [('neuron_healthy.count', "Neuron", 'healthy'), ('neuron_damaged.count', "Neuron", 'damaged'),
-                             ('neuron_dead.count', "Neuron", 'dead'), ('resting_microglia.count', "Microglia", 'resting'),
+        agent_types_brain = [('neuron_healthy.count', "Neuron", 'healthy'),
+                             ('neuron_damaged.count', "Neuron", 'damaged'),
+                             ('neuron_dead.count', "Neuron", 'dead'),
+                             ('resting_microglia.count', "Microglia", 'resting'),
                              ('active_microglia.count', "Microglia", 'active'),
                              ('alpha_syn_cleaved_brain.count', "CleavedProtein", params["protein_name"]["alpha_syn"]),
                              ('tau_cleaved_brain.count', "CleavedProtein", params["protein_name"]["tau"]),
@@ -70,7 +73,7 @@ class Model:
                              ('cytokine.count', "Cytokine", None)]
         self.distribute_all_agents(agent_types_gut, self.gut_context, self.gut_grid, 'gut')
         self.distribute_all_agents(agent_types_brain, self.brain_context, self.brain_grid, 'brain')
-        
+
         # Synchronize the contexts
         self.gut_context.synchronize(gut_environment.restore_agent)
         self.brain_context.synchronize(brain_environment.restore_agent)
@@ -170,7 +173,7 @@ class Model:
 
         def gather_agents_to_remove():
             return [agent for agent in self.brain_context.agents() if
-                    agent.TYPE in {3, 2, 7} and agent.toRemove] # if agent is Oligomer, CleavedProtein or Neuron
+                    agent.TYPE in {3, 2, 7} and agent.toRemove]  # if agent is Oligomer, CleavedProtein or Neuron
 
         # Remove agents marked for removal
         remove_agents = gather_agents_to_remove()
@@ -194,21 +197,19 @@ class Model:
 
         for agent in self.brain_context.agents():
             match agent.TYPE:
-                case 2: #cleaved protein
+                case 2:  # cleaved protein
                     if agent.toAggregate:
                         all_true_cleaved_aggregates.append(agent)
                         agent.toRemove = True
-                case 3: #Oligomer
+                case 3:  # Oligomer
                     if agent.toRemove:
                         oligomer_to_remove.append(agent)
-                case 6: #microglia
+                case 6:  # microglia
                     if agent.state == "active":
                         active_microglia += 1
-                case 7: #neuron
+                case 7:  # neuron
                     if agent.state == "damaged":
                         damaged_neuron += 1
-
-
 
         for _ in range(active_microglia):
             self.add_cytokine()
@@ -268,7 +269,8 @@ class Model:
         random_index = np.random.randint(0, len(possible_types))
         cleaved_protein_name = possible_types[random_index]
         pt = self.brain_grid.get_random_local_pt(self.rng)
-        cleaved_protein = brain_environment.create_new_cleavedProtein(self.added_agents_id, self.rank, cleaved_protein_name, pt)
+        cleaved_protein = brain_environment.create_new_cleavedProtein(self.added_agents_id, self.rank,
+                                                                      cleaved_protein_name, pt)
         self.brain_context.add(cleaved_protein)
         self.move(cleaved_protein, cleaved_protein.pt, cleaved_protein.context)
 
@@ -276,7 +278,8 @@ class Model:
     def gut_add_cleaved_protein(self, cleaved_protein_name):
         self.added_agents_id += 1
         pt = self.gut_grid.get_random_local_pt(self.rng)
-        cleaved_protein = gut_environment.create_new_cleavedProtein(self.added_agents_id, self.rank, cleaved_protein_name, pt)
+        cleaved_protein = gut_environment.create_new_cleavedProtein(self.added_agents_id, self.rank,
+                                                                    cleaved_protein_name, pt)
         self.gut_context.add(cleaved_protein)
         self.move(cleaved_protein, cleaved_protein.pt, 'gut')
 
@@ -315,12 +318,12 @@ class Model:
     # Function to move the cleaved protein agents 
     def move_cleaved_protein_step(self):
         for agent in self.gut_context.agents():
-            if agent.TYPE == 2: #CleavedProtein
+            if agent.TYPE == 2:  # CleavedProtein
                 if not agent.alreadyAggregate:
                     pt = self.gut_grid.get_random_local_pt(self.rng)
                     self.move(agent, pt, agent.context)
         for agent in self.brain_context.agents():
-            if agent.TYPE == 2: #CleavedProtein
+            if agent.TYPE == 2:  # CleavedProtein
                 if not agent.alreadyAggregate:
                     pt = self.brain_grid.get_random_local_pt(self.rng)
                     self.move(agent, pt, agent.context)
@@ -352,7 +355,7 @@ class Model:
 
         def gather_agents_to_remove():
             return [agent for agent in self.gut_context.agents() if
-                    agent.TYPE in {3, 2, 1} and agent.toRemove] # if agent is Oligomer, CleavedProtein or Protein
+                    agent.TYPE in {3, 2, 1} and agent.toRemove]  # if agent is Oligomer, CleavedProtein or Protein
 
         remove_agents = gather_agents_to_remove()
         removed_ids = set()
@@ -372,15 +375,15 @@ class Model:
 
         for agent in self.gut_context.agents():
             match agent.TYPE:
-                case 1: #protein
+                case 1:  # protein
                     if agent.toCleave:
                         protein_to_remove.append(agent)
                         agent.toRemove = True
-                case 2: #CleavedProtein 
+                case 2:  # CleavedProtein
                     if agent.toAggregate:
                         all_true_cleaved_aggregates.append(agent)
                         agent.toRemove = True
-                case 3: #Oligomer
+                case 3:  # Oligomer
                     if agent.toMove:
                         oligomers_to_move.append(agent)
                         agent.toRemove = True
@@ -441,22 +444,22 @@ class Model:
 
         for agent in self.brain_context.agents():
             match agent.TYPE:
-                case 3: #Oligomer
+                case 3:  # Oligomer
                     if agent.name == "alpha_syn":
                         counts["alpha_oligomer_brain"] += 1
                     else:
                         counts["tau_oligomer_brain"] += 1
-                case 2: #CleavedProtein
+                case 2:  # CleavedProtein
                     if agent.name == "alpha_syn":
                         counts["alpha_cleaved_brain"] += 1
                     else:
                         counts["tau_cleaved_brain"] += 1
-                case 7: #Neuron
+                case 7:  # Neuron
                     if agent.state == "healthy":
                         counts["neuron_healthy"] += 1
                     elif agent.state == "damaged":
                         counts["neuron_damaged"] += 1
-                case 6: #Microglia
+                case 6:  # Microglia
                     if agent.state == "active":
                         counts["microglia_active"] += 1
                     else:
@@ -464,22 +467,22 @@ class Model:
 
         for agent in self.gut_context.agents():
             match agent.type:
-                case 3: # Oligomer
+                case 3:  # Oligomer
                     if agent.name == "alpha_syn":
                         counts["alpha_oligomer_gut"] += 1
                     else:
                         counts["tau_oligomer_gut"] += 1
-                case 2: #CleavedProtein
+                case 2:  # CleavedProtein
                     if agent.name == "alpha_syn":
                         counts["alpha_cleaved_gut"] += 1
                     else:
                         counts["tau_cleaved_gut"] += 1
-                case 7: #Protein
+                case 7:  # Protein
                     if agent.name == "alpha_syn":
                         counts["alpha_protein_gut"] += 1
                     else:
                         counts["tau_protein_gut"] += 1
-                case 0: #AEP
+                case 0:  # AEP
                     if agent.state == "active":
                         counts["aep_active"] += 1
                     else:
@@ -557,6 +560,7 @@ def _create_new_agent(agent_class: str, local_id: int, rank: int, nameOrState: s
                 raise ValueError("Not supported agent")
     else:
         raise ValueError("not supported region")
+
 
 def run(params: Dict):
     global model

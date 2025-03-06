@@ -1,5 +1,6 @@
 import pygame
 
+
 # Class to make the graphics of the simulation
 class GUI:
     def __init__(self, width, height, gut_context, brain_context, grid_dimensions=(100, 100)):
@@ -70,43 +71,43 @@ class GUI:
 
     # Function to get the color of an agent based on its type and state
     def get_agent_color(self, agent):
-        if agent.uid[1] == 0: #aep
+        if agent.uid[1] == 0:  # aep
             if agent.state == "active":
                 color = (147, 112, 219)
             else:
                 color = (128, 0, 128)
-        elif agent.uid[1] == 1: #protein
+        elif agent.uid[1] == 1:  # protein
             if agent.name == "tau":
                 color = (173, 216, 230)  # Light Blue
             else:
                 color = (255, 255, 128)  # Light Yellow 
-        elif agent.uid[1] == 2: #CleavedProtein
+        elif agent.uid[1] == 2:  # CleavedProtein
             if agent.name == "tau":
                 color = (113, 166, 210)  # Darker Blue               
             else:
                 color = (225, 225, 100)  # Darker Yellow
-        elif agent.uid[1] == 3: #Oligomer
+        elif agent.uid[1] == 3:  # Oligomer
             if agent.name == "tau":
                 color = (0, 0, 255)  # Blue
             else:
                 color = (255, 255, 0)  # Yellow
-        elif agent.uid[1] == 4: #ExternalInput
+        elif agent.uid[1] == 4:  # ExternalInput
             color = (169, 169, 169)  # Dark Grey
-        elif agent.uid[1] == 5: #Treatment
+        elif agent.uid[1] == 5:  # Treatment
             color = (211, 211, 211)  # Light Grey
-        elif agent.uid[1] == 6: #Microglia
+        elif agent.uid[1] == 6:  # Microglia
             if agent.state == "resting":
                 color = (144, 238, 144)  # Light Green 
             else:
                 color = (0, 100, 0)  # Dark Green
-        elif agent.uid[1] == 7: #Neuron
+        elif agent.uid[1] == 7:  # Neuron
             if agent.state == "healthy":
                 color = (255, 105, 180)  # Pink
             elif agent.state == "damaged":
                 color = (255, 69, 0)  # Orange-Red
             else:
                 color = (0, 0, 0)  # Black
-        elif agent.uid[1] == 8: #Cytokine
+        elif agent.uid[1] == 8:  # Cytokine
             if agent.state == "pro_inflammatory":
                 color = (255, 0, 0)  # Red
             else:
