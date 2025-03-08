@@ -16,14 +16,22 @@ def adjust_bacteria(model, good_bacteria_factor, pathogenic_bacteria_factor):
 
 class ExternalInput(core.Agent):
     TYPE = 4
+    _counter = 0  # Class variable to track selection order
 
     def __init__(self, local_id: int, rank: int, pt: dpt, context, model):
         super().__init__(id=local_id, type=ExternalInput.TYPE, rank=rank)
-        possible_types = list(model.params["external_input"].keys())
-        random_index = np.random.randint(0, len(possible_types))
-        input_name = possible_types[random_index]
+        possible_types = ["healthy_diet", "healthy_diet", "healthy_diet", "healthy_diet", "unhealthy_diet",
+                          "unhealthy_diet", "unhealthy_diet", "antibiotics", "stress", "stress"]
 
-        self.input_name = input_name
+        # Select in order instead of randomly
+        input_index = ExternalInput._counter % len(possible_types)
+        self.input_name = possible_types[input_index]
+
+        # Increment counter for next instance
+        ExternalInput._counter += 1
+
+        print(self.input_name)  # To verify selection order
+
         self.pt = pt
         self.context = context
 
@@ -33,6 +41,21 @@ class ExternalInput(core.Agent):
     # External input step function
     def step(self, model):
         if model.barrier_impermeability >= model.barrier_permeability_threshold_stop:
-            good_bact = model.params["external_input"][self.input_name][0]
-            pathogen_bact = model.params["external_input"][self.input_name][1]
-            adjust_bacteria(model, good_bact, pathogen_bact)
+            if self.input_name in ["unhealthy_diet", "healthy_diet"]:
+                bacteria = self.calculate_effectiveness(model)
+                adjust_bacteria(model, bacteria[0], bacteria[1])
+            else:
+                good_bact, pathogen_bact = model.params["external_input"][self.input_name]
+                adjust_bacteria(model, good_bact, pathogen_bact)
+
+    def calculate_effectiveness(self, model):
+        diet = model.params["external_input"][self.input_name]
+        eff = model.params["effectiveness"]
+
+        good_bact, pathogen_bact = 0, 0
+        for meal in diet:
+            good_bact += diet[meal][0] * eff[meal]
+            pathogen_bact += diet[meal][1] * eff[meal]
+
+        print(good_bact, pathogen_bact)
+        return [good_bact/4, pathogen_bact/4]

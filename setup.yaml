@@ -15,10 +15,23 @@ microbiota_diversity_threshold: 10000
 # The first number affects the good bacteria and the second number the pathogenic bacteria.
 # Positive numbers increase the bacteria count and negative numbers decrease the bacteria count.
 external_input.count: 10
-external_input: { unhealthy_diet: [ -3,3 ],
-                  healthy_diet: [ 3, -2 ],
-                  antibiotics: [ -5,2 ],
-                  stress: [ -3,3 ] }
+external_input: {
+  unhealthy_diet: {
+    breakfast: [ 7,2 ],
+    morn_snack: [ 5,1 ],
+    lunch: [ 9,0 ],
+    aft_snack: [ 5,2 ],
+    dinner: [ 10,0 ]
+  },
+  healthy_diet: {
+    breakfast: [ -4,6 ],
+    morn_snack: [ -5,7 ],
+    lunch: [ -5,7 ],
+    aft_snack: [ -5,7 ],
+    dinner: [ -6,7 ]
+  },
+  antibiotics: [ -5,2 ],
+  stress: [ -3,3 ] }
 
 # The treatment to use
 treatment: True
@@ -72,3 +85,11 @@ brain_log_file: 'output/brain_log.csv'
 log_file: 'output/log_file.csv'
 seed: 42
 
+#Diet information
+effectiveness: {
+  breakfast: 0.2,
+  morn_snack: 0.05,
+  lunch: 0.3,
+  aft_snack: 0.05,
+  dinner: 0.4
+}
