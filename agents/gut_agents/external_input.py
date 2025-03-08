@@ -23,7 +23,7 @@ class ExternalInput(core.Agent):
         # cartella healthy: 5 healthy_diet, 1 unhealthy_diet
         # cartella unhealthy: 5 unhealthy_diet, 1 healthy_diet
         # cartella baseline: 3 e 3
-        possible_types = ["healthy_diet", "healthy_diet", "healthy_diet", "healthy_diet", "healthy_diet",
+        possible_types = ["healthy_diet", "healthy_diet", "healthy_diet", "unhealthy_diet", "unhealthy_diet",
                           "unhealthy_diet", "antibiotics", "antibiotics", "stress", "stress"]
 
         # Select in order instead of randomly
