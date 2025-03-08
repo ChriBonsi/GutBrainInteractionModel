@@ -20,8 +20,11 @@ class ExternalInput(core.Agent):
 
     def __init__(self, local_id: int, rank: int, pt: dpt, context, model):
         super().__init__(id=local_id, type=ExternalInput.TYPE, rank=rank)
-        possible_types = ["healthy_diet", "healthy_diet", "healthy_diet", "healthy_diet", "unhealthy_diet",
-                          "unhealthy_diet", "unhealthy_diet", "antibiotics", "stress", "stress"]
+        # cartella healthy: 5 healthy_diet, 1 unhealthy_diet
+        # cartella unhealthy: 5 unhealthy_diet, 1 healthy_diet
+        # cartella baseline: 3 e 3
+        possible_types = ["healthy_diet", "healthy_diet", "healthy_diet", "healthy_diet", "healthy_diet",
+                          "unhealthy_diet", "antibiotics", "antibiotics", "stress", "stress"]
 
         # Select in order instead of randomly
         input_index = ExternalInput._counter % len(possible_types)
@@ -57,5 +60,4 @@ class ExternalInput(core.Agent):
             good_bact += diet[meal][0] * eff[meal]
             pathogen_bact += diet[meal][1] * eff[meal]
 
-        print(good_bact, pathogen_bact)
-        return [good_bact/4, pathogen_bact/4]
+        return [good_bact / 5, pathogen_bact / 5]

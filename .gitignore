@@ -430,5 +430,4 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,linux,jetbrains+all,visualstudiocode,pycharm+all,python,git
 
 # Project specific
-output/
 .vscode/settings.json

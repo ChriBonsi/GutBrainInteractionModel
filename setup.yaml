@@ -16,14 +16,14 @@ microbiota_diversity_threshold: 10000
 # Positive numbers increase the bacteria count and negative numbers decrease the bacteria count.
 external_input.count: 10
 external_input: {
-  unhealthy_diet: {
+  healthy_diet: {
     breakfast: [ 7,2 ],
     morn_snack: [ 5,1 ],
     lunch: [ 9,0 ],
     aft_snack: [ 5,2 ],
-    dinner: [ 10,0 ]
+    dinner: [ 10 ,0 ]
   },
-  healthy_diet: {
+  unhealthy_diet: {
     breakfast: [ -4,6 ],
     morn_snack: [ -5,7 ],
     lunch: [ -5,7 ],
