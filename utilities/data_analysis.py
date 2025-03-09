@@ -2,7 +2,6 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from scipy.stats import ttest_ind
 
 
 def process_conditions(base_folder, conditions, output_folder):
@@ -48,7 +47,7 @@ def plot_comparison(combined_means, variable):
 
     for condition in combined_means["condition"].unique():
         subset = combined_means[combined_means["condition"] == condition]
-        plt.plot(subset["tick"], subset[variable], label=f"{condition} - Mean")
+        plt.plot(subset["tick"], subset[variable], label=f"{condition.title()} diet - Mean")
         plt.fill_between(
             subset["tick"],
             subset[variable] - subset[variable].std(),
@@ -58,37 +57,19 @@ def plot_comparison(combined_means, variable):
 
     plt.xlabel("Tick")
     plt.ylabel(variable)
-    plt.title(f"Comparison of {variable} Across Conditions")
+    plt.title(f"Comparison of {variable} across diet conditions")
     plt.legend()
     plt.grid(True)
     plt.show()
 
 
-def statistical_test(combined_means, variable):
-    """Performs t-tests between conditions for a given variable at the final tick."""
-
-    final_tick = combined_means["tick"].max()
-    last_tick_data = combined_means[combined_means["tick"] == final_tick]
-
-    conditions = last_tick_data["condition"].unique()
-    for i in range(len(conditions)):
-        for j in range(i + 1, len(conditions)):
-            cond1 = last_tick_data[last_tick_data["condition"] == conditions[i]][variable]
-            cond2 = last_tick_data[last_tick_data["condition"] == conditions[j]][variable]
-            t_stat, p_value = ttest_ind(cond1, cond2, equal_var=False)
-
-            print(f"{conditions[i]} vs {conditions[j]} (Final Tick {final_tick}): p-value = {p_value:.5f}")
-
-
 if __name__ == "__main__":
     base_folder = "../output"
-    conditions = ["baseline", "healthy", "unhealthy"]
+    conditions = ["mixed", "healthy", "unhealthy"]
     output_folder = "../output/comparison"
-    variable = "dead_neuron"
+    variable = "damaged_neuron"
 
     os.makedirs(output_folder, exist_ok=True)
     combined_means = process_conditions(base_folder, conditions, output_folder)
 
-    # Example: Compare 'dead_neuron' across conditions
     plot_comparison(combined_means, variable)
-    statistical_test(combined_means, variable)
